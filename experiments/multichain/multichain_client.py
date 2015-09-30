@@ -11,7 +11,7 @@ from twisted.python.log import msg
 pythonpath.append(path.abspath(path.join(path.dirname(__file__), '..', '..', '..', "./tribler")))
 
 from Tribler.dispersy.candidate import Candidate
-from Tribler.community.multichain.community import MultiChainCommunity
+from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler
 
 
 class MultiChainClient(DispersyExperimentScriptClient):
@@ -28,53 +28,44 @@ class MultiChainClient(DispersyExperimentScriptClient):
 
     def registerCallbacks(self):
         self.scenario_runner.register(self.introduce_candidates, 'introduce_candidates')
-        self.scenario_runner.register(self.set_community_class, 'set_community_class')
+        self.scenario_runner.register(self.set_multichain_type, 'set_multichain_type')
         self.scenario_runner.register(self.request_signature, 'request_signature')
         self.scenario_runner.register(self.request_block, 'request_block')
         self.scenario_runner.register(self.close, 'close')
 
-    def set_community_class(self, community_type='MultiChainCommunity'):
+    def set_multichain_type(self, multichain_type='MultiChainCommunity'):
         """
         Sets the community class of this gumby node to a special community.
         """
-        msg("CommunityType: %s" % community_type)
-        if community_type == 'MultiChainDelayCommunity':
+        msg("CommunityType: %s" % multichain_type)
+        if multichain_type == 'MultiChainDelayCommunity':
             msg("Starting MultiChain client with: " + MultiChainDelayCommunity.__name__)
-            self.community_class = MultiChainCommunity
-        elif community_type == 'MultiChainNoResponseCommunity':
+            self.community_class = MultiChainDelayCommunity
+        elif multichain_type == 'MultiChainNoResponseCommunity':
             msg("Starting MultiChain client with: " + MultiChainNoResponseCommunity.__name__)
             self.community_class = MultiChainNoResponseCommunity
+        elif multichain_type == 'MultiChainCommunityCrawler':
+            msg("Starting MultiChain client with: " + MultiChainCommunityCrawler.__name__)
+            self.community_class = MultiChainCommunityCrawler
         else:
-            raise RuntimeError("Tried to set to unknown community.")
+            raise RuntimeError("Tried to set to unknown community:%s." % multichain_type)
 
     def online(self):
-        DispersyExperimentScriptClient.online(self)
+       DispersyExperimentScriptClient.online(self)
 
-    def request_signature(self, candidate_id=0):
+    def request_signature(self, candidate_id):
         msg("%s: Requesting Signature for candidate: %s" % (self.my_id, candidate_id))
-        if candidate_id == 0:
-            for c in self.all_vars.itervalues():
-                candidate = self._community.get_candidate((str(c['host']), c['port']))
-                print("Member: %s" % candidate.get_member())
-                self._community.publish_signature_request_message(candidate)
-        else:
-            target = self.all_vars[candidate_id]
-            candidate = self._community.get_candidate((str(target['host']), target['port']))
-            print("Candidate: %s" % candidate.get_member())
-            self._community.publish_signature_request_message(candidate)
+        target = self.all_vars[candidate_id]
+        candidate = self._community.get_candidate((str(target['host']), target['port']))
+        print("Candidate known:%s" % candidate.get_member())
+        self._community.publish_signature_request_message(candidate, 1, 1)
 
-    def request_block(self, candidate_id=0, sequence_number=-1):
+    def request_block(self, candidate_id, sequence_number):
         msg("%s: Requesting block: %s For candidate: %s" % (self.my_id, sequence_number, candidate_id))
-        if candidate_id == 0:
-            for c in self.all_vars.itervalues():
-                candidate = self._community.get_candidate((str(c['host']), c['port']))
-                print("Member: %s" % candidate.get_member())
-                self._community.publish_request_block_message(candidate, sequence_number)
-        else:
-            target = self.all_vars[candidate_id]
-            candidate = self._community.get_candidate((str(target['host']), target['port']))
-            print("Candidate: %s" % candidate.get_member())
-            self._community.publish_request_block_message(candidate, int(sequence_number))
+        target = self.all_vars[candidate_id]
+        candidate = self._community.get_candidate((str(target['host']), target['port']))
+        print("Candidate: %s" % candidate.get_member())
+        self._community.publish_request_block_message(candidate, int(sequence_number))
 
     def introduce_candidates(self):
         """
@@ -101,17 +92,17 @@ class MultiChainDelayCommunity(MultiChainCommunity):
     delay = 3
 
     def __init__(self, *args, **kwargs):
-        super(MultiChainCommunity, self).__init__(*args, **kwargs)
+        super(MultiChainDelayCommunity, self).__init__(*args, **kwargs)
 
     def allow_signature_request(self, message):
         """
         Ignore the signature requests.
         :param message: the to be delayed request
         """
-        self._logger.info("Received signature request that will delayed for %s." % self.delay)
+        self.logger.info("Received signature request that will delayed for %s." % self.delay)
         sleep(self.delay)
-        self._logger.info("Delay over.")
-        super(MultiChainCommunity, self).allow_signature_request(message)
+        self.logger.info("Delay over.")
+        super(MultiChainDelayCommunity, self).allow_signature_request(message)
 
 
 class MultiChainNoResponseCommunity(MultiChainCommunity):
@@ -127,9 +118,9 @@ class MultiChainNoResponseCommunity(MultiChainCommunity):
         Ignore the signature requests.
         :param message: the to be ignored request
         """
-        self._logger.info("Received signature request that will be ignored.")
+        self.logger.info("Received signature request that will be ignored.")
         return
 
 if __name__ == '__main__':
-    MultiChainClient.scenario_file = environ.get('SCENARIO_FILE', 'multichain.scenario')
+    MultiChainClient.scenario_file = environ.get('SCENARIO_FILE', 'multichain_standalone.scenario')
     main(MultiChainClient)
