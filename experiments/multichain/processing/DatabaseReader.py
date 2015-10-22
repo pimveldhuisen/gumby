@@ -48,20 +48,9 @@ class DatabaseReader(object):
         self.working_directory = working_directory
         self.database = self.get_database(self.working_directory)
         self.graph = nx.DiGraph()
-        """ Mids are retrieved during generate_graph and used in generate_totals"""
-        self.mids = set([])
-
-        self.generate_graph()
-        self.generate_totals()
         return
 
     def get_database(self, db_path):
-        raise NotImplementedError("Abstract method")
-
-    def generate_graph(self):
-        """
-        Generates a gexf file of the graph.
-        """
         raise NotImplementedError("Abstract method")
 
     def add_block_to_graph(self, block_id, block):
@@ -76,10 +65,6 @@ class DatabaseReader(object):
             """ Follow up block"""
             # Color = blue
             self.paint_node(block_id_encoded, 'b')
-
-        # Add mid's to list
-        self.mids.add(block.mid_requester)
-        self.mids.add(block.mid_responder)
 
     def _work_empty_hash(self):
         """
@@ -105,8 +90,7 @@ class DatabaseReader(object):
         nodes = [edge[0] for edge in edges]
         for node in nodes:
             self.paint_node(node, color)
-        if self.graph.__contains__(node_id):
-            self.graph.remove_node(node_id)
+        self.graph.remove_node(node_id)
 
     def paint_node(self, node, color):
         color_data = {'r': 0, 'g': 0, 'b': 0, 'a': 0}
