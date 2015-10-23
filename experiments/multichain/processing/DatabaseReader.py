@@ -48,9 +48,20 @@ class DatabaseReader(object):
         self.working_directory = working_directory
         self.database = self.get_database(self.working_directory)
         self.graph = nx.DiGraph()
+        """ Mids are retrieved during generate_graph and used in generate_totals"""
+        self.mids = set([])
+
+        self.generate_graph()
+        self.generate_totals()
         return
 
     def get_database(self, db_path):
+        raise NotImplementedError("Abstract method")
+
+    def generate_graph(self):
+        """
+        Generates a gexf file of the graph.
+        """
         raise NotImplementedError("Abstract method")
 
     def add_block_to_graph(self, block_id, block):
@@ -65,6 +76,10 @@ class DatabaseReader(object):
             """ Follow up block"""
             # Color = blue
             self.paint_node(block_id_encoded, 'b')
+
+        # Add mid's to list
+        self.mids.add(block.mid_requester)
+        self.mids.add(block.mid_responder)
 
     def _work_empty_hash(self):
         """
@@ -90,7 +105,8 @@ class DatabaseReader(object):
         nodes = [edge[0] for edge in edges]
         for node in nodes:
             self.paint_node(node, color)
-        self.graph.remove_node(node_id)
+        if self.graph.__contains__(node_id):
+            self.graph.remove_node(node_id)
 
     def paint_node(self, node, color):
         color_data = {'r': 0, 'g': 0, 'b': 0, 'a': 0}
@@ -147,9 +163,7 @@ class DatabaseReader(object):
         class MockMember:
 
             def __init__(self, mid):
-                # Return the mid with 0 appended so that the pk has the same length.
-                # The real pk cannot be retrieved.
-                self.public_key = mid + '0'*(PK_LENGTH - len(mid))
+                self.public_key = mid
 
         def __init__(self):
             return
@@ -179,13 +193,26 @@ class SingleDatabaseReader(DatabaseReader):
         self._work_genesis_hash()
         self._write_graph()
 
+    class MockDispersy:
 
-class GumbyIntegratedDatabaseReader(DatabaseReader):
+        class MockMember:
+
+            def __init__(self, mid):
+                # Return the mid with 0 appended so that the pk has the same length.
+                # The real pk cannot be retrieved.
+                self.public_key = mid + '0'*(PK_LENGTH - len(mid))
+
+        def __init__(self):
+            return
+
+        def get_member(self, mid=''):
+            return self.MockMember(mid)
+
+
+class SingleDatabaseReader(DatabaseReader):
 
     def __init__(self, working_directory):
-        super(GumbyIntegratedDatabaseReader, self).__init__(working_directory)
-
-    def generate_graph(self):
+        super(GumbyDatabaseReader, self).__init__(working_directory)
         print "Reading databases."
         databases = []
         for dir_name in os.listdir(self.working_directory):
