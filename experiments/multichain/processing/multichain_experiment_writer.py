@@ -16,10 +16,10 @@ class MultiChainSyntheticExperiment:
         ticks = size / speed
         time = self.time
         for i in range(0, ticks):
-            """ Download every 1 s."""
+            # Download every 1 s.
             time += 1
             self._write(time, seed, leecher, speed)
-        """ Download remainder. """
+        # Download remainder.
         time += 1
         self._write(time, seed, leecher, size % speed)
 
