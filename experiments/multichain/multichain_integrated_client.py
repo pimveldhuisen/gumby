@@ -21,27 +21,27 @@ class MultiChainIntegratedClient(HiddenServicesClient):
     """
 
     def __init__(self, *args, **kwargs):
-        HiddenServicesClient.__init__(self, *args, **kwargs)
+        super(MultiChainIntegratedClient, self).__init__(self, *args, **kwargs)
         msg("Starting MultiChain client")
-        """ Set the default MultiChainCommunity as community """
+        # Set the default MultiChainCommunity as community
         self._multichain_type = MultiChainCommunity
-        """ MultiChain is initialized later."""
+        # MultiChain is initialized later.
         self._multichain = None
         self.vars['public_key'] = base64.encodestring(self.my_member_key)
-        """ Override the test files to speed up the test."""
+        # Override the test files to speed up the test.
         # 10 Mb
         self.test_file_size = 100 * 1024 * 1024
         self.min_circuits = 1
         self.max_circuits = 1
 
     def registerCallbacks(self):
-        HiddenServicesClient.registerCallbacks(self)
+        super(MultiChainIntegratedClient, self).registerCallbacks(self)
         self.scenario_runner.register(self.set_multichain_type, 'set_multichain_type')
         self.scenario_runner.register(self.introduce_candidates, 'introduce_candidates')
         self.scenario_runner.register(self.request_signature, 'request_signature')
         self.scenario_runner.register(self.request_crawl, 'request_crawl')
         self.scenario_runner.register(self.close, 'close')
-        """ Integrated callbacks"""
+        # Integrated callbacks
         self.scenario_runner.register(self.start_multichain, 'start_multichain')
         self.scenario_runner.register(self.start_scheduler, 'start_scheduler')
 
@@ -68,7 +68,7 @@ class MultiChainIntegratedClient(HiddenServicesClient):
         :return: None
         """
         communities = self._dispersy.define_auto_load(self._multichain_type, self._my_member, (), load=True)
-        """ The MultiChain community has to be saved to be used by gumby. """
+        # The MultiChain community has to be saved to be used by gumby.
         for community in communities:
             if isinstance(community, MultiChainCommunity):
                 self._multichain = community
@@ -82,7 +82,7 @@ class MultiChainIntegratedClient(HiddenServicesClient):
         self._multichain.cleanup_candidates = cleanup_candidates.__get__(self._multichain, self._multichain_type)
 
     def start_scheduler(self):
-        """ Wire the MultiChainScheduler into the Tunnel Community. """
+        # Wire the MultiChainScheduler into the Tunnel Community.
         scheduler = MultiChainScheduler(self._multichain)
         self._community.multichain_scheduler = scheduler
         self._logger.info("MultiChainScheduler loaded.")
@@ -103,7 +103,7 @@ class MultiChainIntegratedClient(HiddenServicesClient):
         """
         Introduce every candidate to each other so that later the candidates can be retrieved and used as a destination.
         """
-        HiddenServicesClient.introduce_candidates(self)
+        super(MultiChainIntegratedClient, self).introduce_candidates(self)
         msg("Introducing every candidate")
         for node in self.all_vars.itervalues():
             candidate = Candidate((str(node['host']), node['port']), False)

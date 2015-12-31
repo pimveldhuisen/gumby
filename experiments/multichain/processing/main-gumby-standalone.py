@@ -1,5 +1,5 @@
 """
-Performs the experimentation processing of a gumby experiment.
+Performs database aggregation after a standalone gumby experiment.
 """
 import sys
 import os

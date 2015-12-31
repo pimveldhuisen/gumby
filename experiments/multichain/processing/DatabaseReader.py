@@ -44,11 +44,11 @@ class DatabaseReader(object):
         Parent class that contains functionality for both gumby and single database readers.
         DatabaseReaders process experimentation information.
         """
-        """ Either contains all information all ready or all information will be aggregated here."""
+        # Either contains all information all ready or all information will be aggregated here.
         self.working_directory = working_directory
         self.database = self.get_database(self.working_directory)
         self.graph = nx.DiGraph()
-        """ Mids are retrieved during generate_graph and used in generate_totals"""
+        # Mids are retrieved during generate_graph and used in generate_totals
         self.mids = set([])
 
         self.generate_graph()
@@ -73,7 +73,7 @@ class DatabaseReader(object):
         self.graph.add_edge(block_id_encoded, base64.encodestring(block.previous_hash_requester))
         self.graph.add_edge(block_id_encoded, base64.encodestring(block.previous_hash_responder))
         if block.previous_hash_requester == block.previous_hash_responder:
-            """ Follow up block"""
+            # Follow up block
             # Color = blue
             self.paint_node(block_id_encoded, 'b')
 
@@ -138,7 +138,7 @@ class DatabaseReader(object):
             if len(total_downs) > length:
                 length = len(total_downs)
         print("Writing data totals to file")
-        """ Write to file """
+        # Write to file
         with open(os.path.join(self.working_directory, "mids_data_up.dat"), 'w') as up_file:
             with open(os.path.join(self.working_directory, "mids_data_down.dat"), 'w') as down_file:
                 for mid in self.mids:

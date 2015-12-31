@@ -1,5 +1,5 @@
 """
-Performs the experimentation processing of a crawler experiment.
+Dumps the database of the multichain crawler after a crawler experiment
 """
 import sys
 import os
