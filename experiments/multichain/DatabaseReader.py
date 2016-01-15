@@ -2,8 +2,6 @@ import os
 from os import path
 import base64
 
-import networkx as nx
-
 from Tribler.community.multichain.database import MultiChainDB
 from Tribler.community.multichain.payload import EMPTY_HASH
 from Tribler.community.multichain.community import GENESIS_ID
@@ -47,80 +45,34 @@ class DatabaseReader(object):
         """ Either contains all information all ready or all information will be aggregated here."""
         self.working_directory = working_directory
         self.database = self.get_database(self.working_directory)
-        self.graph = nx.DiGraph()
         """ Mids are retrieved during generate_graph and used in generate_totals"""
         self.mids = set([])
 
-        self.generate_graph()
+        self.combine_databases()
+        self.generate_block_file()
         self.generate_totals()
         return
 
     def get_database(self, db_path):
         raise NotImplementedError("Abstract method")
 
-    def generate_graph(self):
+    def combine_databases(self):
         """
-        Generates a gexf file of the graph.
+        Combines the databases from the different nodes into one local database
         """
         raise NotImplementedError("Abstract method")
 
-    def add_block_to_graph(self, block_id, block):
-        # The block.id is not usable because it differs from the actual hash as the PKs are missing.
-        block_id_encoded = base64.encodestring(block_id)
-        # Add the block to the graph
-        self.graph.add_node(block_id_encoded)
-        # Add the edges of the blocks
-        self.graph.add_edge(block_id_encoded, base64.encodestring(block.previous_hash_requester))
-        self.graph.add_edge(block_id_encoded, base64.encodestring(block.previous_hash_responder))
-        if block.previous_hash_requester == block.previous_hash_responder:
-            """ Follow up block"""
-            # Color = blue
-            self.paint_node(block_id_encoded, 'b')
-
-        # Add mid's to list
-        self.mids.add(block.mid_requester)
-        self.mids.add(block.mid_responder)
-
-    def _work_empty_hash(self):
+    def generate_graph(self):
         """
-        Fix the graph related to the empty hash nodes.
+        Generates a png file of the graph.
         """
-        print "Fixing the EMPTY HASH nodes."
-        # Color = Red
-        self._work_color(EMPTY_HASH_ENCODED, 'r')
+        raise NotImplementedError("Abstract method")
 
-    def _work_genesis_hash(self):
+    def generate_block_file(self):
         """
-        Fix the graph related tot the genesis hash nodes.
+        Generates a text file with a list the multichain blocks in plain text.
         """
-        print "Fixing the GENESIS HASH nodes."
-        # Color = Green
-        self._work_color(GENESIS_ID_ENCODED, 'g')
-
-    def _work_color(self, node_id, color):
-        """
-        Fix the graph by removing the node with node_id and adding the color to nodes with incoming edges to node_id.
-        """
-        edges = self.graph.in_edges(node_id)
-        nodes = [edge[0] for edge in edges]
-        for node in nodes:
-            self.paint_node(node, color)
-        if self.graph.__contains__(node_id):
-            self.graph.remove_node(node_id)
-
-    def paint_node(self, node, color):
-        color_data = {'r': 0, 'g': 0, 'b': 0, 'a': 0}
-        if color == 'r':
-            color_data['r'] = 255
-        elif color == 'b':
-            color_data['b'] = 255
-        elif color == 'g':
-            color_data['g'] = 255
-        self.graph.node[node]['viz'] = {'color': color_data}
-
-    def _write_graph(self):
-        nx.write_gexf(self.graph, os.path.join(self.working_directory, "graph-gumby.gexf"), encoding='utf8',
-                      prettyprint=False, version="1.2draft")
+        raise NotImplementedError("Abstract method")
 
     def generate_totals(self):
         """
@@ -182,43 +134,70 @@ class SingleDatabaseReader(DatabaseReader):
     def get_database(self, db_path):
         return MultiChainExperimentAnalysisDatabase(self.MockDispersy(), os.path.join(db_path, "multichain/1/"))
 
-    def generate_graph(self):
-        # Read all nodes
-        print "Reading Database"
-        ids = self.database.get_ids()
-        for block_id in ids:
-            block = self.database.get_by_block_id(block_id)
-            # Fix the block. The hash is different because the Public Key is not accessible.
-            block.id = block_id
-            self.add_block_to_graph(block_id, block)
-        self._work_empty_hash()
-        self._work_genesis_hash()
-        self._write_graph()
-
 
 class GumbyIntegratedDatabaseReader(DatabaseReader):
 
     def __init__(self, working_directory):
         super(GumbyIntegratedDatabaseReader, self).__init__(working_directory)
 
-    def generate_graph(self):
+    def combine_databases(self):
         print "Reading databases."
         databases = []
         for dir_name in os.listdir(self.working_directory):
             # Read all nodes
             if 'Tribler' in dir_name:
                 databases.append(MultiChainDB(self.MockDispersy(), path.join(self.working_directory, dir_name)))
-                ids = databases[-1].get_ids()
-                for block_id in ids:
-                    block = databases[-1].get_by_block_id(block_id)
-                    # Fix the block. The hash is different because the Public Key is not accessible.
-                    block.id = block_id
-                    self.add_block_to_graph(block_id, block)
-                    if not self.database.contains(block.id):
-                        self.database.add_block(block)
-        self._work_empty_hash()
-        self._work_genesis_hash()
-        self._write_graph()
+        for database in databases:
+            ids = database.get_ids()
+            for block_id in ids:
+                block = database.get_by_block_id(block_id)
+                # Fix the block. The hash is different because the Public Key is not accessible.
+                block.id = block_id
+                if not self.database.contains(block.id):
+                    self.database.add_block(block)
+        total_blocks = len(self.database.get_ids())
+        print "Found " + str(total_blocks) + " unique multichain blocks across databases"
+
+    def generate_block_file(self):
+        print "Writing multichain to file"
+        with open(os.path.join(self.working_directory, "multichain.dat"), 'w') as multichain_file:
+            # Write header
+            multichain_file.write(
+                "Block_ID " +
+                "Up " +
+                "Down " +
+                "Public_Key_Requester " +
+                "Total_Up_Requester " +
+                "Total_Down_Requester " +
+                "Sequence_Number_Requester " +
+                "Previous_Hash_Requester " +
+                "Public_Key_Responder " +
+                "Total_Up_Responder " +
+                "Total_Down_Responder " +
+                "Sequence_Number_Responder " +
+                "Previous_Hash_Responder" +
+                "\n"
+            )
+            # Write blocks
+            ids = self.database.get_ids()
+            for block_id in ids:
+                block = self.database.get_by_block_id(block_id)
+                multichain_file.write(
+                    base64.encodestring(block_id).replace('\n', '').replace('\r', '') + " " +
+                    str(block.up) + " " +
+                    str(block.down)+" " +
+                    base64.encodestring(block.public_key_requester).replace('\n', '').replace('\r', '') + " " +
+                    str(block.total_up_requester)+ " " +
+                    str(block.total_down_requester)+ " " +
+                    str(block.sequence_number_requester)+ " " +
+                    base64.encodestring(block.previous_hash_requester).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.public_key_responder).replace('\n', '').replace('\r', '') + " " +
+                    str(block.total_up_responder) + " " +
+                    str(block.total_down_responder) + " " +
+                    str(block.sequence_number_responder) + " " +
+                    base64.encodestring(block.previous_hash_responder).replace('\n', '').replace('\r', '') +
+                    "\n"
+                )
 
     def get_database(self, db_path):
         return MultiChainExperimentAnalysisDatabase(self.MockDispersy(), db_path)
@@ -228,25 +207,6 @@ class GumbyStandaloneDatabaseReader(DatabaseReader):
 
     def __init__(self, working_directory):
         super(GumbyStandaloneDatabaseReader, self).__init__(working_directory)
-
-    def generate_graph(self):
-        print "Reading databases."
-        databases = []
-        for dir_name in os.listdir(self.working_directory):
-            # Read all nodes
-            if string_is_int(dir_name):
-                databases.append(MultiChainDB(self.MockDispersy(), path.join(self.working_directory, dir_name)))
-                ids = databases[-1].get_ids()
-                for block_id in ids:
-                    block = databases[-1].get_by_block_id(block_id)
-                    # Fix the block. The hash is different because the Public Key is not accessible.
-                    block.id = block_id
-                    self.add_block_to_graph(block_id, block)
-                    if not self.database.contains(block.id):
-                        self.database.add_block(block)
-        self._work_empty_hash()
-        self._work_genesis_hash()
-        self._write_graph()
 
     def get_database(self, db_path):
         return MultiChainExperimentAnalysisDatabase(self.MockDispersy(), db_path)

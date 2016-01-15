@@ -1,8 +1,9 @@
+#!/usr/bin/env python2
 """
 Performs the experimentation processing of a gumby experiment.
 """
-import sys
 import os
+import sys
 
 if __name__ == '__main__':
     # Fix the path
@@ -10,7 +11,7 @@ if __name__ == '__main__':
     sys.path.append(os.path.abspath('./gumby'))
     sys.path.append(os.getcwd())
 
-    working_directory = os.path.abspath("output/multichain")
+    working_directory = os.path.abspath("output/")
     if sys.argv == 2:
         working_directory = sys.argv[1]
 
@@ -19,7 +20,7 @@ if __name__ == '__main__':
     if not os.path.exists(aggregation_path):
         os.makedirs(aggregation_path)
 
-    from experiments.multichain.processing.DatabaseReader import GumbyStandaloneDatabaseReader
+    from DatabaseReader import GumbyIntegratedDatabaseReader
 
-    data = GumbyStandaloneDatabaseReader(working_directory)
+    data = GumbyIntegratedDatabaseReader(working_directory)
     data.database.close()
