@@ -1,8 +1,8 @@
 """
 Dumps the database of the multichain crawler after a crawler experiment
 """
-import sys
 import os
+import sys
 
 if __name__ == '__main__':
     # Fix the path
@@ -13,6 +13,6 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         working_directory = sys.argv[1]
 
-    from experiments.multichain.processing.DatabaseReader import SingleDatabaseReader
+    from experiments.multichain.DatabaseReader import SingleDatabaseReader
     data = SingleDatabaseReader(working_directory)
     data.database.close()
