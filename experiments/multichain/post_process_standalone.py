@@ -1,8 +1,8 @@
 """
 Performs database aggregation after a standalone gumby experiment.
 """
-import sys
 import os
+import sys
 
 if __name__ == '__main__':
     # Fix the path
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     if not os.path.exists(aggregation_path):
         os.makedirs(aggregation_path)
 
-    from experiments.multichain.processing.DatabaseReader import GumbyStandaloneDatabaseReader
+    from experiments.multichain.DatabaseReader import GumbyStandaloneDatabaseReader
 
     data = GumbyStandaloneDatabaseReader(working_directory)
     data.database.close()
