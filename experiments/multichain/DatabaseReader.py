@@ -69,10 +69,45 @@ class DatabaseReader(object):
         raise NotImplementedError("Abstract method")
 
     def generate_block_file(self):
-        """
-        Generates a text file with a list the multichain blocks in plain text.
-        """
-        raise NotImplementedError("Abstract method")
+        print "Writing multichain to file"
+        with open(os.path.join(self.working_directory, "multichain.dat"), 'w') as multichain_file:
+            # Write header
+            multichain_file.write(
+                "Block_ID " +
+                "Up " +
+                "Down " +
+                "Public_Key_Requester " +
+                "Total_Up_Requester " +
+                "Total_Down_Requester " +
+                "Sequence_Number_Requester " +
+                "Previous_Hash_Requester " +
+                "Public_Key_Responder " +
+                "Total_Up_Responder " +
+                "Total_Down_Responder " +
+                "Sequence_Number_Responder " +
+                "Previous_Hash_Responder" +
+                "\n"
+            )
+            # Write blocks
+            ids = self.database.get_ids()
+            for block_id in ids:
+                block = self.database.get_by_block_id(block_id)
+                multichain_file.write(
+                    base64.encodestring(block_id).replace('\n', '').replace('\r', '') + " " +
+                    str(block.up) + " " +
+                    str(block.down)+" " +
+                    base64.encodestring(block.public_key_requester).replace('\n', '').replace('\r', '') + " " +
+                    str(block.total_up_requester)+ " " +
+                    str(block.total_down_requester)+ " " +
+                    str(block.sequence_number_requester)+ " " +
+                    base64.encodestring(block.previous_hash_requester).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.public_key_responder).replace('\n', '').replace('\r', '') + " " +
+                    str(block.total_up_responder) + " " +
+                    str(block.total_down_responder) + " " +
+                    str(block.sequence_number_responder) + " " +
+                    base64.encodestring(block.previous_hash_responder).replace('\n', '').replace('\r', '') +
+                    "\n"
+                )
 
     def generate_totals(self):
         """
@@ -158,46 +193,7 @@ class GumbyIntegratedDatabaseReader(DatabaseReader):
         total_blocks = len(self.database.get_ids())
         print "Found " + str(total_blocks) + " unique multichain blocks across databases"
 
-    def generate_block_file(self):
-        print "Writing multichain to file"
-        with open(os.path.join(self.working_directory, "multichain.dat"), 'w') as multichain_file:
-            # Write header
-            multichain_file.write(
-                "Block_ID " +
-                "Up " +
-                "Down " +
-                "Public_Key_Requester " +
-                "Total_Up_Requester " +
-                "Total_Down_Requester " +
-                "Sequence_Number_Requester " +
-                "Previous_Hash_Requester " +
-                "Public_Key_Responder " +
-                "Total_Up_Responder " +
-                "Total_Down_Responder " +
-                "Sequence_Number_Responder " +
-                "Previous_Hash_Responder" +
-                "\n"
-            )
-            # Write blocks
-            ids = self.database.get_ids()
-            for block_id in ids:
-                block = self.database.get_by_block_id(block_id)
-                multichain_file.write(
-                    base64.encodestring(block_id).replace('\n', '').replace('\r', '') + " " +
-                    str(block.up) + " " +
-                    str(block.down)+" " +
-                    base64.encodestring(block.public_key_requester).replace('\n', '').replace('\r', '') + " " +
-                    str(block.total_up_requester)+ " " +
-                    str(block.total_down_requester)+ " " +
-                    str(block.sequence_number_requester)+ " " +
-                    base64.encodestring(block.previous_hash_requester).replace('\n', '').replace('\r', '') + " " +
-                    base64.encodestring(block.public_key_responder).replace('\n', '').replace('\r', '') + " " +
-                    str(block.total_up_responder) + " " +
-                    str(block.total_down_responder) + " " +
-                    str(block.sequence_number_responder) + " " +
-                    base64.encodestring(block.previous_hash_responder).replace('\n', '').replace('\r', '') +
-                    "\n"
-                )
+
 
     def get_database(self, db_path):
         return MultiChainExperimentAnalysisDatabase(self.MockDispersy(), db_path)
@@ -210,6 +206,27 @@ class GumbyStandaloneDatabaseReader(DatabaseReader):
 
     def get_database(self, db_path):
         return MultiChainExperimentAnalysisDatabase(self.MockDispersy(), db_path)
+
+    def combine_databases(self):
+        print "Reading databases."
+        databases = []
+        for dir_name in os.listdir(self.working_directory):
+            # Read all nodes
+          #  if 'Tribler' in dir_name:
+            if dir_name.isdigit():
+                databases.append(MultiChainDB(self.MockDispersy(), path.join(self.working_directory, dir_name)))
+        for database in databases:
+            ids = database.get_ids()
+            for block_id in ids:
+                block = database.get_by_block_id(block_id)
+                # Fix the block. The hash is different because the Public Key is not accessible.
+                block.id = block_id
+                if not self.database.contains(block.id):
+                    self.database.add_block(block)
+        total_blocks = len(self.database.get_ids())
+        print "Found " + str(total_blocks) + " unique multichain blocks across databases"
+
+
 
 
 def string_is_int(string):
