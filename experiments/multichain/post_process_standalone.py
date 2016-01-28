@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 """
 Performs database aggregation after a standalone gumby experiment.
 """
