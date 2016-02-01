@@ -87,6 +87,7 @@ class ScenarioParser():
                time stamp, they will be executed in order.
     """
     _re_substitution = re_compile("(\$\w+)")
+    _named_arg_detect = re_compile("^\s*(\w+)\s*=\s*(.*)$")
 
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -169,7 +170,16 @@ class ScenarioParser():
                 if len(timespec) > 2:
                     begin += int(timespec[-3]) * 3600
 
-                return (begin, lineno, callable, shlex.split(args))
+                unnamed_args = []
+                named_args = {}
+                for arg in shlex.split(args):
+                    argname = self._named_arg_detect.match(arg)
+                    if argname:
+                        named_args[argname.group(1)] = arg[argname.start(2):]
+                    else:
+                        unnamed_args.append(arg)
+
+                return (begin, lineno, callable, unnamed_args, named_args)
 
             except Exception, e:
                 print >> sys.stderr, "Ignoring invalid scenario line", lineno, line, str(e)
@@ -258,12 +268,12 @@ class ScenarioRunner(ScenarioParser):
         self._callables[name] = clb
 
     def parse_file(self):
-        for (tstmp, _, clb, args) in self._parse_scenario(self.filename):
+        for (tstmp, line, clb, args, kargs) in self._parse_scenario(self.filename):
             if clb not in self._callables:
-                self._logger.error("'%s' is not registered as an action!", clb)
+                self._logger.error("'%s' is not registered as an action! Called at %d", clb, line)
                 continue
 
-            self._my_actions.append((tstmp, clb, args))
+            self._my_actions.append((tstmp, clb, args, kargs))
 
         self._is_parsed = True
 
@@ -279,13 +289,14 @@ class ScenarioRunner(ScenarioParser):
         if self._expstartstamp == None:
             self._expstartstamp = time()
 
-        for tstmp, clb, args in self._my_actions:
+        for tstmp, clb, args, kargs in self._my_actions:
             tstmp = tstmp + self._expstartstamp
             delay = tstmp - time()
             reactor.callLater(
                 delay if delay > 0.0 else 0,
                 self._callables[clb],
-                *args
+                *args,
+                **kargs
             )
 
     def _parse_for_this_peer(self, peerspec):

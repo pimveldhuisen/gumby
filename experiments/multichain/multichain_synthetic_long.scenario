@@ -1,12 +1,11 @@
-@0:0 set_master_member 3081a7301006072a8648ce3d020106052b81040027038192000406712a1e5381d030ae25697bd6626810af48ed5094e5faae18a8b91e482e60b8681b26bf6aca786ad81b207ffb5a755956b4d6353c9dc487eb1bfdd17b66bd0de444e01a375fcf3401177a7bb102da7c5f50ad9375fe4a1ae1baca9d47870f56c841169fc36c2b113bafbadacab9f2b3c7773b3d82a54cda8fbde41b9e0e571ba631997a8259cc78e7f262e933542b51
-@0:0 start_dispersy
-@0:1 online
-@0:5 reset_dispersy_statistics
-@0:10 annotate start-experiment-1-peer
-@0:15 introduce_candidates {1}
-@0:25 introduce_candidates {2}
-@0:35 introduce_candidates {3}
-@0:45 introduce_candidates {4}
+@0:0 set_dispersy_source Default
+@0:0 set_master_member 3081a7301006072a8648ce3d020106052b81040027038192000400e3c76fb73d7be8b96afeb83e23eefaf903f21380f438a47261aa72d063aa8ea3abcba7b2e18437e6bd1491a7f6a44d39f62c5abe71bb2f9a660daf64d26a7416223a1141b2433006233bf728e6dd33eaf2de445e0b1ebd8cf0fd21627c0dbf435c1f48b74279ecf0a956eb8adef1b0f625cd00c55b7e6ce6df5ebe7f2215cdba840baefada72d10085c0a5f9c435ec name=tunnel
+@0:0 set_master_member 3081a7301006072a8648ce3d020106052b81040027038192000406712a1e5381d030ae25697bd6626810af48ed5094e5faae18a8b91e482e60b8681b26bf6aca786ad81b207ffb5a755956b4d6353c9dc487eb1bfdd17b66bd0de444e01a375fcf3401177a7bb102da7c5f50ad9375fe4a1ae1baca9d47870f56c841169fc36c2b113bafbadacab9f2b3c7773b3d82a54cda8fbde41b9e0e571ba631997a8259cc78e7f262e933542b51 name=multichain
+@0:1 start_dispersy
+@0:10 init_community no_exit crypto
+@0:15 online
+@0:18 reset_dispersy_statistics
+@0:20 introduce_candidates
 
 @0:201 increase_kbytes_received 1 1000 {2}
 @0:201 increase_kbytes_sent 2 1000 {1}
@@ -20012,6 +20011,5 @@
 @0:10201 increase_kbytes_sent 2 0 {1}
 @0:10220 schedule_block 2 {1}
 
-@0:10300 close
 @0:10300 stop_dispersy
 @0:10300 stop
