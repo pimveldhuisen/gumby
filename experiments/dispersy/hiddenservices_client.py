@@ -39,9 +39,8 @@
 
 from os import path
 
-from gumby.experiments.TriblerDispersyClient import TriblerDispersyExperimentScriptClient,\
-    BASE_DIR
-from gumby.experiments.dispersyclient import main
+from gumby.experiments.dispersymulticlient import MultiDispersyExperimentScriptClient, BASE_DIR
+from gumby.experiments.dispersymulticlient import main
 import logging
 from twisted.internet import reactor
 from twisted.python.log import msg
@@ -49,12 +48,12 @@ from posix import environ
 from time import sleep
 
 
-class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
+class HiddenServicesClient(MultiDispersyExperimentScriptClient):
 
     def __init__(self, *argv, **kwargs):
         from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
         super(HiddenServicesClient, self).__init__(*argv, **kwargs)
-        self.community_class = HiddenTunnelCommunity
+        self.set_community(HiddenTunnelCommunity, name="tunnel")
         self.speed_download = {'download': 0}
         self.speed_upload = {'upload': 0}
         self.progress = {'progress': 0}
@@ -89,11 +88,16 @@ class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
             from Tribler.community.tunnel.crypto.tunnelcrypto import NoTunnelCrypto
             tunnel_settings.crypto = NoTunnelCrypto()
 
-        self.set_community_kwarg('tribler_session', self.session)
-        self.set_community_kwarg('settings', tunnel_settings)
+        self.set_community_kwarg('tribler_session', self.session, name="tunnel")
+        self.set_community_kwarg('settings', tunnel_settings, name="tunnel")
 
-    def get_my_member(self):
-        return self._dispersy.get_new_member(u"curve25519")
+    @property
+    def tunnel_community(self):
+        return self.experiment_communities["tunnel"].community
+
+    @property
+    def my_member_key_curve(self):
+        return u"curve25519"
 
     def log_progress_stats(self, ds):
         new_speed_download = {'download': ds.get_current_speed('down')}
@@ -125,7 +129,7 @@ class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
         dscfg.set_dest_dir(path.join(BASE_DIR, 'tribler', 'download-%s-%d' % (self.session.get_dispersy_port(), hops)))
 
         # Monkeypatch! Disable creating intropoints after finishing downloading
-        self._community.create_introduction_point = self.fake_create_introduction_point
+        self.tunnel_community.create_introduction_point = self.fake_create_introduction_point
 
         def cb_start_download():
             from Tribler.Core.simpledefs import dlstatus_strings
@@ -140,7 +144,7 @@ class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
                                ds.get_progress(),
                                dlstatus_strings[ds.get_status()],
                                sum(ds.get_num_seeds_peers()),
-                               sum(1 for _ in self._community.dispersy_yield_verified_candidates())))
+                               sum(1 for _ in self.tunnel_community.dispersy_yield_verified_candidates())))
 
                 self.log_progress_stats(ds)
 
@@ -152,25 +156,26 @@ class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
             # Force lookup
             sleep(10)
             msg("Do a manual dht lookup call to bootstrap it a bit")
-            self._community.do_dht_lookup(tdef.get_infohash())
+            self.tunnel_community.do_dht_lookup(tdef.get_infohash())
 
         self.session.lm.threadpool.call_in_thread(0, cb_start_download)
 
     def online(self, dont_empty=False):
         super(HiddenServicesClient, self).online(dont_empty)
-        self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
+        if not self.session is None:
+            self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
 
-        def monitor_downloads(dslist):
-            self._community.monitor_downloads(dslist)
-            return (1.0, [])
-        self.session.set_download_states_callback(monitor_downloads, False)
+            def monitor_downloads(dslist):
+                self.tunnel_community.monitor_downloads(dslist)
+                return (1.0, [])
+            self.session.set_download_states_callback(monitor_downloads, False)
 
     def introduce_candidates(self):
         # We are letting dispersy deal with addins the community's candidate to itself.
         from Tribler.dispersy.candidate import Candidate
         for port in range(21000, 21000 + self.totalpeers):
             if self.dispersy_port != port:
-                self._community.add_discovered_candidate(Candidate((self._dispersy._wan_address[0], port),
+                self.tunnel_community.add_discovered_candidate(Candidate((self._dispersy._wan_address[0], port),
                                                                    tunnel=False))
 
     def create_test_torrent(self, filename=''):
@@ -226,7 +231,7 @@ class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
                                ds.get_progress(),
                                dlstatus_strings[ds.get_status()],
                                sum(ds.get_num_seeds_peers()),
-                               sum(1 for _ in self._community.dispersy_yield_verified_candidates())))
+                               sum(1 for _ in self.tunnel_community.dispersy_yield_verified_candidates())))
 
                 self.log_progress_stats(ds)
 
