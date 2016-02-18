@@ -11,7 +11,7 @@ from twisted.python.log import msg
 pythonpath.append(path.abspath(path.join(path.dirname(__file__), '..', '..', '..', "./tribler")))
 
 from Tribler.dispersy.candidate import Candidate
-from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler, MultiChainScheduler
+from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler
 
 
 class MultiChainClient(HiddenServicesClient):
@@ -27,7 +27,7 @@ class MultiChainClient(HiddenServicesClient):
 
         # Override the test files to speed up the test.
         # 10 Mb
-        self.test_file_size = 100 * 1024 * 1024
+        self.test_file_size = 10 * 1024 * 1024
         self.min_circuits = 1
         self.max_circuits = 1
 
@@ -37,9 +37,6 @@ class MultiChainClient(HiddenServicesClient):
         self.scenario_runner.register(self.introduce_candidates)
         self.scenario_runner.register(self.request_signature)
         self.scenario_runner.register(self.request_crawl)
-        self.scenario_runner.register(self.increase_kbytes_sent)
-        self.scenario_runner.register(self.increase_kbytes_received)
-        self.scenario_runner.register(self.schedule_block)
 
     @property
     def multichain_community(self):
@@ -55,7 +52,6 @@ class MultiChainClient(HiddenServicesClient):
         self.multichain_community.cleanup_candidates = cleanup_candidates.__get__(
                 self.multichain_community,
                 self.experiment_communities["multichain"].community_class)
-        self.multichain_scheduler = MultiChainScheduler(self.multichain_community)
 
     def request_signature(self, candidate_id):
         target = self.all_vars[candidate_id]
@@ -83,33 +79,6 @@ class MultiChainClient(HiddenServicesClient):
             member.add_identity(self.multichain_community)
             candidate.associate(member)
 
-    def increase_kbytes_sent(self, candidate_id, amount_sent):
-        """
-        Increase the Kbytes received from a particular node in the MultiChainScheduler.
-        """
-        msg("%s: Increasing bytes sent: %s For candidate: %s" % (self.my_id, amount_sent, candidate_id))
-        target = self.all_vars[candidate_id]
-        peer = (str(target['host']), target['port'])
-        self.multichain_scheduler.update_amount_send(peer, int(amount_sent) * 1000)
-
-    def increase_kbytes_received(self, candidate_id, amount_received):
-        """
-        Increase the Kbytes received from a particular node in the MultiChainScheduler.
-        """
-        msg("%s: Increasing bytes received: %s For candidate: %s" % (self.my_id, amount_received, candidate_id))
-        target = self.all_vars[candidate_id]
-        peer = (str(target['host']), target['port'])
-        self.multichain_scheduler.update_amount_received(peer, int(amount_received)*1000)
-
-    def schedule_block(self, candidate_id):
-        """
-        Finish up the download.
-        :param candidate_id:
-        """
-        msg("%s: Scheduling block for candidate: %s" % (self.my_id, candidate_id))
-        target = self.all_vars[candidate_id]
-        peer = (str(target['host']), target['port'])
-        self.multichain_scheduler.schedule_block(peer)
 
 class MultiChainDelayCommunity(MultiChainCommunity):
     """
