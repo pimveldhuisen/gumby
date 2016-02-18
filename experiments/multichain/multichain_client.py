@@ -11,7 +11,7 @@ from twisted.python.log import msg
 pythonpath.append(path.abspath(path.join(path.dirname(__file__), '..', '..', '..', "./tribler")))
 
 from Tribler.dispersy.candidate import Candidate
-from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler, MultiChainScheduler
+from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler
 
 
 class MultiChainClient(DispersyExperimentScriptClient):
@@ -54,8 +54,9 @@ class MultiChainClient(DispersyExperimentScriptClient):
         else:
             raise RuntimeError("Tried to set to unknown community:%s." % multichain_type)
 
-    def online(self):
-       DispersyExperimentScriptClient.online(self)
+    def online(self, dont_empty=False):
+        DispersyExperimentScriptClient.online(self, dont_empty)
+        msg("%s: MID: %s" % (self.my_id, self._community.my_member.mid))
 
     def request_signature(self, candidate_id):
         msg("%s: Requesting Signature for candidate: %s" % (self.my_id, candidate_id))
@@ -70,34 +71,6 @@ class MultiChainClient(DispersyExperimentScriptClient):
         candidate = self._community.get_candidate((str(target['host']), target['port']))
         print("Candidate: %s" % candidate.get_member())
         self._community.publish_request_block_message(candidate, int(sequence_number))
-
-    def increase_kbytes_sent(self, candidate_id, amount_sent):
-        """
-        Increase the Kbytes received from a particular node in the MultiChainScheduler.
-        """
-        msg("%s: Increasing bytes sent: %s For candidate: %s" % (self.my_id, amount_sent, candidate_id))
-        target = self.all_vars[candidate_id]
-        peer = (str(target['host']), target['port'])
-        self.scheduler.update_amount_send(peer, int(amount_sent) * 1000)
-
-    def increase_kbytes_received(self, candidate_id, amount_received):
-        """
-        Increase the Kbytes received from a particular node in the MultiChainScheduler.
-        """
-        msg("%s: Increasing bytes received: %s For candidate: %s" % (self.my_id, amount_received, candidate_id))
-        target = self.all_vars[candidate_id]
-        peer = (str(target['host']), target['port'])
-        self.scheduler.update_amount_received(peer, int(amount_received)*1000)
-
-    def schedule_block(self, candidate_id):
-        """
-        Finish up the download.
-        :param candidate_id:
-        """
-        msg("%s: Scheduling block for candidate: %s" % (self.my_id, candidate_id))
-        target = self.all_vars[candidate_id]
-        peer = (str(target['host']), target['port'])
-        self.scheduler.schedule_block(peer)
 
     def introduce_candidates(self):
         """
