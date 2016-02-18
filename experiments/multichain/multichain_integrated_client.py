@@ -12,7 +12,7 @@ from twisted.python.log import msg
 pythonpath.append(path.abspath(path.join(path.dirname(__file__), '..', '..', '..', "./tribler")))
 
 from Tribler.dispersy.candidate import Candidate
-from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler, MultiChainScheduler
+from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler
 
 
 class MultiChainIntegratedClient(HiddenServicesClient):
@@ -43,7 +43,6 @@ class MultiChainIntegratedClient(HiddenServicesClient):
         self.scenario_runner.register(self.close, 'close')
         """ Integrated callbacks"""
         self.scenario_runner.register(self.start_multichain, 'start_multichain')
-        self.scenario_runner.register(self.start_scheduler, 'start_scheduler')
 
     def set_multichain_type(self, multichain_type='MultiChainCommunity'):
         """
@@ -74,12 +73,6 @@ class MultiChainIntegratedClient(HiddenServicesClient):
                 self._multichain = community
                 self._logger.info("MultiChain community loaded.")
                 break
-
-    def start_scheduler(self):
-        """ Wire the MultiChainScheduler into the Tunnel Community. """
-        scheduler = MultiChainScheduler(self._multichain)
-        self._community.multichain_scheduler = scheduler
-        self._logger.info("MultiChainScheduler loaded.")
 
     def request_signature(self, candidate_id):
         msg("%s: Requesting Signature for candidate: %s" % (self.my_id, candidate_id))
