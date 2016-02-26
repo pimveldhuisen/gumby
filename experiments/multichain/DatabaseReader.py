@@ -3,13 +3,7 @@ from os import path
 import base64
 
 from Tribler.community.multichain.database import MultiChainDB
-from Tribler.community.multichain.payload import EMPTY_HASH
-from Tribler.community.multichain.community import GENESIS_ID
-from Tribler.community.multichain.conversion import PK_LENGTH
-
-EMPTY_HASH_ENCODED = base64.encodestring(EMPTY_HASH)
-GENESIS_ID_ENCODED = base64.encodestring(GENESIS_ID)
-
+from Tribler.community.multichain.conversion import EMPTY_HASH, GENESIS_ID, PK_LENGTH
 
 class MultiChainExperimentAnalysisDatabase(MultiChainDB):
     """
@@ -73,39 +67,50 @@ class DatabaseReader(object):
         with open(os.path.join(self.working_directory, "multichain.dat"), 'w') as multichain_file:
             # Write header
             multichain_file.write(
-                "Block_ID " +
+                "Public_Key_Requester " +
+                "Public_Key_Responder " +
                 "Up " +
                 "Down " +
-                "Public_Key_Requester " +
+
                 "Total_Up_Requester " +
                 "Total_Down_Requester " +
                 "Sequence_Number_Requester " +
                 "Previous_Hash_Requester " +
-                "Public_Key_Responder " +
+                "Signature_Requester " +
+                "Hash_Requester " +
+
                 "Total_Up_Responder " +
                 "Total_Down_Responder " +
                 "Sequence_Number_Responder " +
-                "Previous_Hash_Responder" +
+                "Previous_Hash_Responder " +
+                "Signature_Responder " +
+                "Hash_Responder " +
                 "\n"
             )
+
             # Write blocks
-            ids = self.database.get_ids()
-            for block_id in ids:
-                block = self.database.get_by_block_id(block_id)
+            hashes_requester = self.database.get_all_hash_requester()
+            for hash_requester in hashes_requester:
+                block = self.database.get_by_hash_requester(hash_requester)
                 multichain_file.write(
-                    base64.encodestring(block_id).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.public_key_requester).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.public_key_responder).replace('\n', '').replace('\r', '') + " " +
                     str(block.up) + " " +
                     str(block.down)+" " +
-                    base64.encodestring(block.public_key_requester).replace('\n', '').replace('\r', '') + " " +
-                    str(block.total_up_requester)+ " " +
-                    str(block.total_down_requester)+ " " +
-                    str(block.sequence_number_requester)+ " " +
+                    
+                    str(block.total_up_requester) + " " +
+                    str(block.total_down_requester) + " " +
+                    str(block.sequence_number_requester) + " " +
                     base64.encodestring(block.previous_hash_requester).replace('\n', '').replace('\r', '') + " " +
-                    base64.encodestring(block.public_key_responder).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.signature_requester).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.hash_requester).replace('\n', '').replace('\r', '') + " " +
+                    
                     str(block.total_up_responder) + " " +
                     str(block.total_down_responder) + " " +
                     str(block.sequence_number_responder) + " " +
-                    base64.encodestring(block.previous_hash_responder).replace('\n', '').replace('\r', '') +
+                    base64.encodestring(block.previous_hash_responder).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.signature_responder).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.hash_responder).replace('\n', '').replace('\r', '') + " " +
                     "\n"
                 )
 
@@ -183,14 +188,12 @@ class GumbyIntegratedDatabaseReader(DatabaseReader):
             if 'Tribler' in dir_name:
                 databases.append(MultiChainDB(self.MockDispersy(), path.join(self.working_directory, dir_name)))
         for database in databases:
-            ids = database.get_ids()
-            for block_id in ids:
-                block = database.get_by_block_id(block_id)
-                # Fix the block. The hash is different because the Public Key is not accessible.
-                block.id = block_id
-                if not self.database.contains(block.id):
+            hashes_requester = database.get_all_hash_requester()
+            for hash_requester in hashes_requester:
+                block = database.get_by_hash_requester(hash_requester)
+                if not self.database.contains(hash_requester):
                     self.database.add_block(block)
-        total_blocks = len(self.database.get_ids())
+        total_blocks = len(self.database.get_all_hash_requester())
         print "Found " + str(total_blocks) + " unique multichain blocks across databases"
 
 
@@ -216,14 +219,12 @@ class GumbyStandaloneDatabaseReader(DatabaseReader):
             if dir_name.isdigit():
                 databases.append(MultiChainDB(self.MockDispersy(), path.join(self.working_directory, dir_name)))
         for database in databases:
-            ids = database.get_ids()
-            for block_id in ids:
-                block = database.get_by_block_id(block_id)
-                # Fix the block. The hash is different because the Public Key is not accessible.
-                block.id = block_id
-                if not self.database.contains(block.id):
+            hashes_requester = database.get_all_hash_requester()
+            for hash_requester in hashes_requester:
+                block = database.get_by_hash_requester(hash_requester)
+                if not self.database.contains(hash_requester):
                     self.database.add_block(block)
-        total_blocks = len(self.database.get_ids())
+        total_blocks = len(self.database.get_all_hash_requester())
         print "Found " + str(total_blocks) + " unique multichain blocks across databases"
 
 
