@@ -1,28 +1,30 @@
 library(ggplot2)
 library(igraph)
 
-genesis_id_base64 = "MDAwMDAwMDAwMDAwMDAwMDAwMDA="
-half_sign_hash_base64 = "MDAwMDAwMDAwMDAwMDAwMDAwMDE="
+genesis_id_base64 = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDE="
+half_sign_hash_base64 = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
 
 add_block_vertex_to_graph <- function(block){
     if (block["Previous_Hash_Responder"] == half_sign_hash_base64 && block["Previous_Hash_Requester"] == genesis_id_base64) {
         print("Found Half-Signed Origin Block")
-        graph<<-graph+vertex(sprintf(block["Block_ID"]), color="purple")
+        graph<<-graph+vertex(sprintf(block["Hash_Requester"]), color="purple")
     } else if (block["Previous_Hash_Responder"] == half_sign_hash_base64) {
         print("Found Half-Signed Block")
-        graph<<-graph+vertex(sprintf(block["Block_ID"]), color="red")
+        graph<<-graph+vertex(sprintf(block["Hash_Requester"]), color="red")
     } else if (block["Previous_Hash_Responder"] == genesis_id_base64 && block["Previous_Hash_Requester"] == genesis_id_base64) {
         print("Found Double Origin Block") # Both requester and responder have no previous blocks
-        graph<<-graph+vertex(sprintf(block["Block_ID"]), color="darkolivegreen3")
+        graph<<-graph+vertex(sprintf(block["Hash_Requester"]), color="darkolivegreen3")
     } else if (block["Previous_Hash_Requester"] == genesis_id_base64) {
         print("Found Requester Origin Block")
-        graph<<-graph+vertex(sprintf(block["Block_ID"]), color="darkolivegreen4")
+        graph<<-graph+vertex(sprintf(block["Hash_Requester"]), color="darkolivegreen4")
     } else if (block["Previous_Hash_Responder"] == genesis_id_base64) {
         print("Found Responder Origin Block")
-        graph<<-graph+vertex(sprintf(block["Block_ID"]), color="darkolivegreen4")
+        graph<<-graph+vertex(sprintf(block["Hash_Requester"]), color="darkolivegreen4")
      } else {
         #Normal block
-        graph<<-graph+vertex(sprintf(block["Block_ID"]), color="darkgoldenrod1")
+        graph<<-graph+vertex(sprintf(block["Hash_Requester"]), color="darkgoldenrod1")
+        print("Add vertex: " )
+        print(sprintf(block["Hash_Requester"]))
     }
 }
 
@@ -33,29 +35,40 @@ add_block_edges_to_graph <- function(block){
                 # Found Half-Signed Origin Block
              } else if (block["Previous_Hash_Responder"] == half_sign_hash_base64) {#or block.previous_hash_requester == GENESIS_ID:
                 # Half-Signed Block
-                graph<<-graph+edge(sprintf(block["Block_ID"]),sprintf(block["Previous_Hash_Requester"]))
+                graph<<-graph+edge(sprintf(block["Hash_Requester"]),sprintf(get_requester_hash_from_any_hash(block["Previous_Hash_Requester"])))
             } else if (block["Previous_Hash_Responder"] == genesis_id_base64 && block["Previous_Hash_Requester"] == genesis_id_base64) {
                 # Double Origin Block
             } else if (block["Previous_Hash_Requester"] == genesis_id_base64) {
                 # Found Requester Origin Block
-                graph<<-graph+edge(sprintf(block["Block_ID"]),sprintf(block["Previous_Hash_Responder"]))
+                graph<<-graph+edge(sprintf(block["Hash_Requester"]),sprintf(get_requester_hash_from_any_hash(block["Previous_Hash_Responder"])))
             } else if (block["Previous_Hash_Responder"] == genesis_id_base64) {
                 # Found Responder Origin Block
-                graph<<-graph+edge(sprintf(block["Block_ID"]),sprintf(block["Previous_Hash_Requester"]))
+                graph<<-graph+edge(sprintf(block["Hash_Requester"]),sprintf(get_requester_hash_from_any_hash(block["Previous_Hash_Requester"])))
              } else {
                 #Normal block
-                graph<<-graph+edge(sprintf(block["Block_ID"]),sprintf(block["Previous_Hash_Responder"]))
-                graph<<-graph+edge(sprintf(block["Block_ID"]),sprintf(block["Previous_Hash_Requester"]))
+                graph<<-graph+edge(sprintf(block["Hash_Requester"]),sprintf(get_requester_hash_from_any_hash(block["Previous_Hash_Responder"])))
+                graph<<-graph+edge(sprintf(block["Hash_Requester"]),sprintf(get_requester_hash_from_any_hash(block["Previous_Hash_Requester"])))
             }
         },
         warning = function(w) {warning(w)},
         error = function(e)
             {
                 warning(e)
-                warning(block["Block_ID"])
+                warning(block["Hash_Requester"])
             },
         finally ={}
     )
+}
+
+get_requester_hash_from_any_hash <- function(hash){
+ requester = data[data[,"Hash_Requester"]==hash,]
+ dimensions = dim(requester)
+ if (dimensions[1] == 1) {
+    return(as.character(requester[1,"Hash_Requester"]))
+  } else {
+    responder = data[data[,"Hash_Responder"]==hash,]
+    return(as.character(responder[1,"Hash_Requester"]))
+  }
 }
 
 multichain_file = "null"
@@ -69,7 +82,6 @@ if(file.exists("output/multichain.dat")) {
 if(multichain_file != "null") {
     print("Generating Multichain graph")
     data <- read.table(multichain_file, header = TRUE, sep =" ", row.names = NULL)
-
     graph <- make_empty_graph()
 
     apply(data, 1, add_block_vertex_to_graph)
