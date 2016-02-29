@@ -8,5 +8,5 @@
 @0:50 reset_dispersy_statistics
 @0:60 setup_seeder 1hops10mb1 1 {11-30}
 @0:150 start_download 1hops10mb1 1 {31-51}
-@0:450 stop
-@0:500 close
+@0:1740 stop
+@0:1800 close
