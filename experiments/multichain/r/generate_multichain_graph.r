@@ -1,8 +1,8 @@
 library(ggplot2)
 library(igraph)
 
-genesis_id_base64 = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDE="
-half_sign_hash_base64 = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+genesis_id_base64 = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+half_sign_hash_base64 = "MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=="
 
 add_block_vertex_to_graph <- function(block){
     if (block["Previous_Hash_Responder"] == half_sign_hash_base64 && block["Previous_Hash_Requester"] == genesis_id_base64) {
