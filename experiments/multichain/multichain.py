@@ -57,7 +57,7 @@ class MultiChainClient(HiddenServicesClient):
         target = self.all_vars[candidate_id]
         msg("%s: Requesting Signature for candidate: %s" % (self.my_id, candidate_id))
         candidate = self.multichain_community.get_candidate((str(target['host']), target['port']))
-        self.multichain_community.publish_signature_request_message(candidate, 1, 1)
+        self.multichain_community.sign_block(candidate, 1, 1)
 
     def request_crawl(self, candidate_id, sequence_number):
         target = self.all_vars[candidate_id]
@@ -89,15 +89,15 @@ class MultiChainDelayCommunity(MultiChainCommunity):
     def __init__(self, *args, **kwargs):
         super(MultiChainDelayCommunity, self).__init__(*args, **kwargs)
 
-    def allow_signature_request(self, message):
+    def received_signed_block(self, messages):
         """
         Ignore the signature requests.
         :param message: the to be delayed request
         """
         def continue_after_delay():
             self.logger.info("Delay over.")
-            super(MultiChainDelayCommunity, self).allow_signature_request(message)
-        self.logger.info("Received signature request that will delayed for %s." % self.delay)
+            super(MultiChainDelayCommunity, self).received_signed_block(messages)
+        self.logger.info("Received signature requests that will delayed for %s." % self.delay)
         reactor.callLater(self.delay, continue_after_delay)
 
 
@@ -109,7 +109,7 @@ class MultiChainNoResponseCommunity(MultiChainCommunity):
     def __init__(self, *args, **kwargs):
         super(MultiChainNoResponseCommunity, self).__init__(*args, **kwargs)
 
-    def allow_signature_request(self, message):
+    def received_signed_block(self, messages):
         """
         Ignore the signature requests.
         :param message: the to be ignored request
