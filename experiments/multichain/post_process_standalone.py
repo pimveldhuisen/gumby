@@ -12,7 +12,7 @@ if __name__ == '__main__':
     sys.path.append(os.getcwd())
 
     working_directory = os.path.abspath("output/multichain")
-    if sys.argv == 2:
+    if len(sys.argv) == 2:
         working_directory = sys.argv[1]
 
     # Create an aggregation output directory.
