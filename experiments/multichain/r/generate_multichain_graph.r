@@ -71,7 +71,7 @@ get_requester_hash_from_any_hash <- function(hash){
   }
 }
 
-multichain_file = "null"
+multichain_file = "multichain.dat"
 
 if(file.exists("output/multichain.dat")) {
     multichain_file = "output/multichain.dat"
@@ -79,11 +79,31 @@ if(file.exists("output/multichain.dat")) {
     multichain_file = "output/multichain/multichain.dat"
 }
 
+if (!file.exists(multichain_file)) {
+    print("Unable to find multichain data file")
+    multichain_file = "null"
+}
+
+Hilbert <- function(level=5, x=0, y=0, xi=1, xj=0, yi=0, yj=1) {
+    if (level <= 0) {
+        return(c(x + (xi + yi)/2, y + (xj + yj)/2))
+    } else {
+        return(rbind(
+            Hilbert(level-1, x,           y,           yi/2, yj/2,  xi/2,  xj/2),
+            Hilbert(level-1, x+xi/2,      y+xj/2 ,     xi/2, xj/2,  yi/2,  yj/2),
+            Hilbert(level-1, x+xi/2+yi/2, y+xj/2+yj/2, xi/2, xj/2,  yi/2,  yj/2),
+            Hilbert(level-1, x+xi/2+yi,   y+xj/2+yj,  -yi/2,-yj/2, -xi/2, -xj/2)
+        ))
+    }
+}
+ 
 if(multichain_file != "null") {
     print("Generating Multichain graph")
     data <- read.table(multichain_file, header = TRUE, sep =" ", row.names = NULL)
-    both <- union(levels(data$Public_Key_Requester), levels(data$Public_Key_Responder))
+    both <- base::union(levels(data$Public_Key_Requester), levels(data$Public_Key_Responder))
+    positions <- head(Hilbert(level=ceiling(log(nrow(data))/log(4))), nrow(data))
     data <- cbind(id_req=as.numeric(factor(data$Public_Key_Requester, levels=both)), id_resp=as.numeric(factor(data$Public_Key_Responder, levels=both)), data)
+    data <- data[ order(data[,"Insert_Time"]), ]
 
     graph <- make_empty_graph()
 
@@ -91,21 +111,21 @@ if(multichain_file != "null") {
     apply(data, 1, add_block_edges_to_graph)
 
     svg('output/multichain.svg', width = 25, height = 25)
-    plot(graph, layout=layout.kamada.kawai, vertex.size=2, edge.color="black", vertex.label=NA, vertex.color= V(graph)$color, edge.label=NA)
+    plot(graph, layout=positions, vertex.size=2, edge.color="black", vertex.label=NA, vertex.color= V(graph)$color, edge.label=NA)
 
     svg('output/multichain_labels.svg', width = 25, height = 25)
-    plot(graph, layout=layout.kamada.kawai, vertex.size=2, edge.color="black", vertex.color= V(graph)$color, edge.label=NA)
+    plot(graph, layout=positions, vertex.size=2, edge.color="black", vertex.color= V(graph)$color, edge.label=NA)
 
-    svg('output/multichain_edge_labels.svg', width = 25, height = 25)
-    plot(graph, layout=layout.kamada.kawai, vertex.size=2, edge.color="black", vertex.label=NA, vertex.color= V(graph)$color)
+    svg('output/multichain_edge_labels.svg', width = 250, height = 250)
+    plot(graph, layout=positions, vertex.size=0.2, edge.color="black", vertex.label=NA, vertex.color= V(graph)$color)
 
     png('output/multichain.png', width = 800, height = 800)
-    plot(graph, layout=layout.kamada.kawai, vertex.size=2, edge.color="black", vertex.label=NA, vertex.color= V(graph)$color, edge.label=NA)
+    plot(graph, layout=positions, vertex.size=2, edge.color="black", vertex.label=NA, vertex.color= V(graph)$color, edge.label=NA)
 
     png('output/multichain_labels.png', width = 800, height = 800)
-    plot(graph, layout=layout.kamada.kawai, vertex.size=2, edge.color="black", vertex.color= V(graph)$color, edge.label=NA)
+    plot(graph, layout=positions, vertex.size=2, edge.color="black", vertex.color= V(graph)$color, edge.label=NA)
 
-    png('output/multichain_edge_labels.png', width = 800, height = 800)
-    plot(graph, layout=layout.kamada.kawai, vertex.size=2, edge.color="black", vertex.label=NA, vertex.color= V(graph)$color)
+    png('output/multichain_edge_labels.png', width = 1600, height = 1600)
+    plot(graph, layout=positions, vertex.size=0.1, edge.color="black", vertex.label=NA, vertex.color= V(graph)$color)
 }
 

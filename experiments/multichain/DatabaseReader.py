@@ -85,6 +85,7 @@ class DatabaseReader(object):
                 "Previous_Hash_Responder " +
                 "Signature_Responder " +
                 "Hash_Responder " +
+                "Insert_Time" +
                 "\n"
             )
 
@@ -111,6 +112,7 @@ class DatabaseReader(object):
                     base64.encodestring(block.previous_hash_responder).replace('\n', '').replace('\r', '') + " " +
                     base64.encodestring(block.signature_responder).replace('\n', '').replace('\r', '') + " " +
                     base64.encodestring(block.hash_responder).replace('\n', '').replace('\r', '') + " " +
+                    str(block.insert_time).replace(" ", "-") +
                     "\n"
                 )
 
