@@ -245,6 +245,7 @@ class ProcessMonitor(object):
                 self.network_monitor_file = None
         else:
             self.monitor_file = None
+            self.network_monitor_file = None
         # Capture SIGTERM to kill all the child processes before dying
         self.stopping = False
         signal(SIGTERM, self._termTrap)
