@@ -51,9 +51,9 @@ from time import sleep
 class HiddenServicesClient(MultiDispersyExperimentScriptClient):
 
     def __init__(self, *argv, **kwargs):
-        from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+        from Tribler.community.tunnel.hidden_community_multichain import HiddenTunnelCommunityMultichain
         super(HiddenServicesClient, self).__init__(*argv, **kwargs)
-        self.set_community(HiddenTunnelCommunity, name="tunnel")
+        self.set_community(HiddenTunnelCommunityMultichain, name="tunnel")
         self.speed_download = {'download': 0}
         self.speed_upload = {'upload': 0}
         self.progress = {'progress': 0}
