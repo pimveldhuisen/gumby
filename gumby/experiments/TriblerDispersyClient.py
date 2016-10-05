@@ -92,7 +92,6 @@ class TriblerDispersyExperimentScriptClient(DispersyExperimentScriptClient):
         config.set_dht_torrent_collecting(False)
         config.set_enable_torrent_search(False)
         config.set_enable_channel_search(False)
-        config.set_videoplayer(False)
         config.set_listen_port(20000 + self.scenario_runner._peernumber)
 
         if self.dispersy_port is None:
