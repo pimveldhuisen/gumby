@@ -52,9 +52,8 @@ from time import sleep
 class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
 
     def __init__(self, *argv, **kwargs):
-        from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
         TriblerDispersyExperimentScriptClient.__init__(self, *argv, **kwargs)
-        self.community_class = HiddenTunnelCommunity
+        self.community_class = None
         self.speed_download = {'download': 0}
         self.speed_upload = {'upload': 0}
         self.progress = {'progress': 0}
@@ -91,6 +90,13 @@ class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
 
         self.set_community_kwarg('tribler_session', self.session)
         self.set_community_kwarg('settings', tunnel_settings)
+
+        if self.session.get_enable_multichain():
+            from Tribler.community.tunnel.hidden_community_multichain import HiddenTunnelCommunityMultichain
+            self.community_class = HiddenTunnelCommunityMultichain
+        else:
+            from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+            self.community_class = HiddenTunnelCommunity
 
     def get_my_member(self):
         return self._dispersy.get_new_member(u"curve25519")
