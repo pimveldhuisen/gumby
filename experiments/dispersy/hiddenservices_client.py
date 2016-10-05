@@ -92,6 +92,13 @@ class HiddenServicesClient(TriblerDispersyExperimentScriptClient):
         self.set_community_kwarg('tribler_session', self.session)
         self.set_community_kwarg('settings', tunnel_settings)
 
+        if self.session.get_enable_multichain():
+            from Tribler.community.tunnel.hidden_community_multichain import HiddenTunnelCommunityMultichain
+            self.community_class = HiddenTunnelCommunityMultichain
+        else:
+            from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+            self.community_class = HiddenTunnelCommunity
+
     def get_my_member(self):
         return self._dispersy.get_new_member(u"curve25519")
 
