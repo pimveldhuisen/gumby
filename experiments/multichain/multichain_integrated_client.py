@@ -63,16 +63,26 @@ class MultiChainIntegratedClient(HiddenServicesClient):
 
     def start_multichain(self):
         """
-        Load the multichain community into Dispersy.
+        Load the multichain community into Dispersy if it has not been started already.
         :return: None
         """
-        communities = self._dispersy.define_auto_load(self._multichain_type, self._my_member, (), load=True)
-        """ The MultiChain community has to be saved to be used by gumby. """
+        communities = self._dispersy.get_communities()
+        # Find the MultiChain community
         for community in communities:
             if isinstance(community, MultiChainCommunity):
                 self._multichain = community
                 self._logger.info("MultiChain community loaded.")
-                break
+                return
+
+        # If the community can not be found, load it
+        communities = self._dispersy.define_auto_load(self._multichain_type, self._my_member, (), load=True)
+
+        # Find the (newly loaded) MultiChain community
+        for community in communities:
+            if isinstance(community, MultiChainCommunity):
+                self._multichain = community
+                self._logger.info("MultiChain community loaded.")
+                return
 
     def request_signature(self, candidate_id):
         msg("%s: Requesting Signature for candidate: %s" % (self.my_id, candidate_id))
