@@ -67,6 +67,7 @@ class MultiChainIntegratedClient(HiddenServicesClient):
         :return: None
         """
         communities = self._dispersy.get_communities()
+        print communities
         # Find the MultiChain community
         for community in communities:
             if isinstance(community, MultiChainCommunity):
