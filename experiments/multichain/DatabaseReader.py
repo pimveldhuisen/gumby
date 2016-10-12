@@ -67,50 +67,45 @@ class DatabaseReader(object):
         with open(os.path.join(self.working_directory, "multichain.dat"), 'w') as multichain_file:
             # Write header
             multichain_file.write(
-                "Public_Key_Requester " +
-                "Public_Key_Responder " +
                 "Up " +
                 "Down " +
+                "Total_Up " +
+                "Total_Down " +
 
-                "Total_Up_Requester " +
-                "Total_Down_Requester " +
-                "Sequence_Number_Requester " +
-                "Previous_Hash_Requester " +
-                "Signature_Requester " +
-                "Hash_Requester " +
+                "Public_Key"
+                "Sequence_Number " +
+                "Linked_Public_Key " +
+                "Linked_Sequence_Number " +
+                "Previous_Hash " +
 
-                "Total_Up_Responder " +
-                "Total_Down_Responder " +
-                "Sequence_Number_Responder " +
-                "Previous_Hash_Responder " +
-                "Signature_Responder " +
-                "Hash_Responder " +
+                "Signature " +
+                "Insert_Time " +
+                "Block_Hash " +
                 "\n"
             )
 
             # Write blocks
-            hashes_requester = self.database.get_all_hash_requester()
-            for hash_requester in hashes_requester:
-                block = self.database.get_by_hash_requester(hash_requester)
+            blocks = self.database._getall(u"", u"")
+            for block in blocks:
                 multichain_file.write(
                     base64.encodestring(block.public_key_requester).replace('\n', '').replace('\r', '') + " " +
                     base64.encodestring(block.public_key_responder).replace('\n', '').replace('\r', '') + " " +
+
+
                     str(block.up) + " " +
                     str(block.down)+" " +
+                    str(block.total_up) + " " +
+                    str(block.total_down) + " " +
                     
-                    str(block.total_up_requester) + " " +
-                    str(block.total_down_requester) + " " +
-                    str(block.sequence_number_requester) + " " +
-                    base64.encodestring(block.previous_hash_requester).replace('\n', '').replace('\r', '') + " " +
-                    base64.encodestring(block.signature_requester).replace('\n', '').replace('\r', '') + " " +
-                    base64.encodestring(block.hash_requester).replace('\n', '').replace('\r', '') + " " +
-                    
-                    str(block.total_up_responder) + " " +
-                    str(block.total_down_responder) + " " +
-                    str(block.sequence_number_responder) + " " +
-                    base64.encodestring(block.previous_hash_responder).replace('\n', '').replace('\r', '') + " " +
-                    base64.encodestring(block.signature_responder).replace('\n', '').replace('\r', '') + " " +
-                    base64.encodestring(block.hash_responder).replace('\n', '').replace('\r', '') + " " +
+                    str(block.public_key) + " " +
+                    str(block.sequence_number) + " " +
+                    str(block.link_public_key) + " " +
+                    str(block.link_sequence_number) + " " +
+                    base64.encodestring(block.previous_hash).replace('\n', '').replace('\r', '') + " " +
+
+                    base64.encodestring(block.signature).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.insert_time).replace('\n', '').replace('\r', '') + " " +
+                    base64.encodestring(block.hash()).replace('\n', '').replace('\r', '') + " " +
                     "\n"
                 )
 
@@ -188,15 +183,12 @@ class GumbyIntegratedDatabaseReader(DatabaseReader):
             if 'Tribler' in dir_name:
                 databases.append(MultiChainDB(self.MockDispersy(), path.join(self.working_directory, dir_name)))
         for database in databases:
-            hashes_requester = database.get_all_hash_requester()
-            for hash_requester in hashes_requester:
-                block = database.get_by_hash_requester(hash_requester)
-                if not self.database.contains(hash_requester):
+            blocks = database._getall(u"", u"")
+            for block in blocks:
+                if not self.database.contains(block):
                     self.database.add_block(block)
         total_blocks = len(self.database.get_all_hash_requester())
         print "Found " + str(total_blocks) + " unique multichain blocks across databases"
-
-
 
     def get_database(self, db_path):
         return MultiChainExperimentAnalysisDatabase(self.MockDispersy(), db_path)
@@ -211,6 +203,7 @@ class GumbyStandaloneDatabaseReader(DatabaseReader):
         return MultiChainExperimentAnalysisDatabase(self.MockDispersy(), db_path)
 
     def combine_databases(self):
+        print "THIS CODE SHOULD NOT BE REACHED"
         print "Reading databases."
         databases = []
         for dir_name in os.listdir(self.working_directory):
