@@ -111,9 +111,7 @@ class MultiChainIntegratedClient(HiddenServicesClient):
 
     def close(self):
         msg("close command received")
-        self._multichain.unload_community()
-        self._community.unload_community()
-
+        
 if __name__ == '__main__':
     MultiChainIntegratedClient.scenario_file = environ.get('SCENARIO_FILE', 'multichain_integrated.scenario')
     main(MultiChainIntegratedClient)
