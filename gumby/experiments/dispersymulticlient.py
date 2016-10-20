@@ -610,6 +610,8 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
         config.set_enable_channel_search(False)
         config.set_videoserver_enabled(False)
         config.set_listen_port(20000 + client.scenario_runner._peernumber)
+        socks5_listen_ports = [60000 + client.scenario_runner._peernumber*5 + x for x in range(5)]
+        config.set_tunnel_community_socks5_listen_ports(socks5_listen_ports)
 
         if client.dispersy_port is None:
             client.dispersy_port = 21000 + client.scenario_runner._peernumber
