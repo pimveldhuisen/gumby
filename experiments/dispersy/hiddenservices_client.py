@@ -122,7 +122,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
     def start_download(self, filename, hops=1):
         hops = int(hops)
         self.annotate('start downloading %d hop(s)' % hops)
-        from Tribler.Main.globals import DefaultDownloadStartupConfig
+        from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
         dscfg.set_hops(hops)
@@ -215,7 +215,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
 
             msg("Start seeding")
 
-            from Tribler.Main.globals import DefaultDownloadStartupConfig
+            from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
             dscfg.set_dest_dir(path.join(BASE_DIR, "tribler"))
