@@ -41,6 +41,7 @@ from time import time, sleep
 from traceback import print_exc
 
 import shutil
+from twisted.internet.threads import deferToThread
 
 from gumby.log import setupLogging
 from gumby.scenario import ScenarioRunner
@@ -565,36 +566,23 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
 
     def start_dispersy(self, client, autoload_discovery=True):
         from Tribler.Core.Session import Session
-        from twisted.internet import threads
+        logging.error("Starting Tribler Session")
+        self.session_config = self.setup_session_config(client)
+        self.session = Session(scfg=self.session_config)
+
+        def on_tribler_started(_):
+            logging.error("Tribler Session started")
+            self.annotate("Tribler Session started")
+            self._dispersy = self.session.lm.dispersy
 
         def _do_start():
-            try:
-                logging.error("Starting Tribler Session")
-                self.session_config = self.setup_session_config(client)
-                self.session = Session(scfg=self.session_config)
-                client.session = self.session
+            logging.error("Upgrader")
+            upgrader = self.session.prestart()
+            while not upgrader.is_done:
+                sleep(0.1)
+            return self.session.start().addCallback(on_tribler_started)
 
-                upgrader = self.session.prestart()
-                while not upgrader.is_done:
-                    sleep(0.1)
-
-                self.session.start()
-
-                while not self.session.lm.initComplete:
-                    sleep(0.5)
-
-                self.dispersy = self.session.lm.dispersy
-                client._dispersy = self.dispersy
-
-                logging.error("Tribler Session started")
-                client.annotate("Tribler Session started")
-
-                return self.session
-            except:
-                logging.error("Error starting Session: %s" % traceback.format_exc())
-                raise
-
-        def __start_dispersy(session):
+        def __setup_dispersy_member(session):
             try:
                 client.original_on_incoming_packets = self.dispersy.on_incoming_packets
                 client.post_start_dispersy()
@@ -602,10 +590,7 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
                 logging.error("Error fetching master members: %s" % traceback.format_exc())
                 raise
 
-        self.session_deferred = threads.deferToThread(_do_start)
-        self.session_deferred.addCallback(__start_dispersy)
-        # You may think WUT?! at this point. The __start_dispersy callback ends up doing database work and the callback
-        # ensures that it is run on the proper thread (somehow,,,)
+        deferToThread(_do_start).addCallback(__setup_dispersy_member)
 
     def setup_session_config(self, client):
         from Tribler.Core.SessionConfig import SessionStartupConfig
