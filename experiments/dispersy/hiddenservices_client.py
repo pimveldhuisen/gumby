@@ -99,6 +99,11 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
     def my_member_key_curve(self):
         return u"curve25519"
 
+    def modify_config(self, config):
+        # We want to create our own community
+        config.set_tunnel_community_enabled(False)
+        return config
+
     def log_progress_stats(self, ds):
         new_speed_download = {'download': ds.get_current_speed('down')}
         self.speed_download = self.print_on_change("speed-download",
@@ -131,39 +136,39 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         # Monkeypatch! Disable creating intropoints after finishing downloading
         self.tunnel_community.create_introduction_point = self.fake_create_introduction_point
 
-        def cb_start_download():
-            from Tribler.Core.simpledefs import dlstatus_strings
-            tdef = self.create_test_torrent(filename)
+       # def cb_start_download():
+        from Tribler.Core.simpledefs import dlstatus_strings
+        tdef = self.create_test_torrent(filename)
 
-            def cb(ds):
-                msg('Download infohash=%s, hops=%d, down=%s, up=%d, progress=%s, status=%s, peers=%s, cand=%d' %
-                              (tdef.get_infohash().encode('hex')[:5],
-                               hops,
-                               ds.get_current_speed('down'),
-                               ds.get_current_speed('up'),
-                               ds.get_progress(),
-                               dlstatus_strings[ds.get_status()],
-                               sum(ds.get_num_seeds_peers()),
-                               sum(1 for _ in self.tunnel_community.dispersy_yield_verified_candidates())))
+        def cb(ds):
+            msg('Download infohash=%s, hops=%d, down=%s, up=%d, progress=%s, status=%s, peers=%s, cand=%d' %
+                          (tdef.get_infohash().encode('hex')[:5],
+                           hops,
+                           ds.get_current_speed('down'),
+                           ds.get_current_speed('up'),
+                           ds.get_progress(),
+                           dlstatus_strings[ds.get_status()],
+                           sum(ds.get_num_seeds_peers()),
+                           sum(1 for _ in self.tunnel_community.dispersy_yield_verified_candidates())))
 
-                self.log_progress_stats(ds)
+            self.log_progress_stats(ds)
 
-                return 1.0, False
+            return 1.0, False
 
-            download = self.session.start_download(tdef, dscfg)
-            download.set_state_callback(cb, delay=1)
+        download = self.session.start_download_from_tdef(tdef, dscfg)
+        download.set_state_callback(cb)
 
-            # Force lookup
-            sleep(10)
-            msg("Do a manual dht lookup call to bootstrap it a bit")
-            self.tunnel_community.do_dht_lookup(tdef.get_infohash())
+        # Force lookup
+        sleep(10)
+        msg("Do a manual dht lookup call to bootstrap it a bit")
+        self.tunnel_community.do_dht_lookup(tdef.get_infohash())
 
-        self.session.lm.threadpool.call_in_thread(0, cb_start_download)
+       # self.session.lm.threadpool.call_in_thread(0, cb_start_download)
 
     def online(self, dont_empty=False):
         super(HiddenServicesClient, self).online(dont_empty)
         if not self.session is None:
-            self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
+        #    self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
 
             def monitor_downloads(dslist):
                 self.tunnel_community.monitor_downloads(dslist)
@@ -237,8 +242,8 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
 
                 return 1.0, False
 
-            download = self.session.start_download(tdef, dscfg)
-            download.set_state_callback(cb, delay=1)
+            download = self.session.start_download_from_tdef(tdef, dscfg)
+            download.set_state_callback(cb)
 
         msg("Call to cb_seeder_download")
         reactor.callInThread(cb_seeder_download)

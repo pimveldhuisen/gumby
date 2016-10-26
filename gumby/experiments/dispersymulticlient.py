@@ -190,6 +190,10 @@ class MultiDispersyExperimentScriptClient(ExperimentClient):
                 self.experiment_communities[name].kwargs[key.strip()] = value.strip()
 
     def set_community_kwarg(self, key, value, name = "default"):
+        print "Set kwarg " + str(key) + " of community " + str(name) + " as " + str(value)
+        from Tribler.community.tunnel.tunnel_community import TunnelSettings
+        if isinstance(value, TunnelSettings):
+            print value.socks_listen_ports
         self.experiment_communities[name].kwargs[key] = value
 
     def set_dispersy_source(self, source):
@@ -565,15 +569,23 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
         pythonpath.append(path.abspath(path.join(self.base_dir, "./tribler")))
 
     def start_dispersy(self, client, autoload_discovery=True):
+        from twisted.python.threadable import isInIOThread
+        assert isInIOThread()
         from Tribler.Core.Session import Session
         logging.error("Starting Tribler Session")
         self.session_config = self.setup_session_config(client)
         self.session = Session(scfg=self.session_config)
 
         def on_tribler_started(_):
+            from twisted.python.threadable import isInIOThread
+            assert isInIOThread()
+            print "Debug 1"
             logging.error("Tribler Session started")
-            self.annotate("Tribler Session started")
-            self._dispersy = self.session.lm.dispersy
+         #   self.annotate("Tribler Session started")
+            client.session = self.session
+            client._dispersy = self.session.lm.dispersy
+            client.original_on_incoming_packets = client._dispersy.on_incoming_packets
+            client.post_start_dispersy()
 
         def _do_start():
             logging.error("Upgrader")
@@ -583,14 +595,28 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
             return self.session.start().addCallback(on_tribler_started)
 
         def __setup_dispersy_member(session):
-            try:
-                client.original_on_incoming_packets = self.dispersy.on_incoming_packets
-                client.post_start_dispersy()
-            except:
-                logging.error("Error fetching master members: %s" % traceback.format_exc())
-                raise
+          #  from twisted.python.threadable import isInIOThread
+         #   assert isInIOThread()
+            print "Debug 3"
+           # try:
+            client.original_on_incoming_packets = self.dispersy.on_incoming_packets
+            client.post_start_dispersy()
+            print "I will return:"
+            print self.dispersy
+            return self.dispersy
+         #  # except:
+           #     logging.error("Error fetching master members: %s" % traceback.format_exc())
+#                raise
 
-        deferToThread(_do_start).addCallback(__setup_dispersy_member)
+        def _handleFailure(f):
+            print "errback"
+            print "we got an exception: %s" % (f.getTraceback(),)
+            raise f
+
+        d = _do_start()
+        d.addErrback(_handleFailure)
+        #d.addCallback(__setup_dispersy_member)
+        return d
 
     def setup_session_config(self, client):
         from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -610,13 +636,18 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
         config.set_enable_channel_search(False)
         config.set_videoserver_enabled(False)
         config.set_listen_port(20000 + client.scenario_runner._peernumber)
-        socks5_listen_ports = [60000 + client.scenario_runner._peernumber*5 + x for x in range(5)]
+        socks5_listen_ports = [39000 + client.scenario_runner._peernumber * 5 + x for x in range(5)]
         config.set_tunnel_community_socks5_listen_ports(socks5_listen_ports)
 
         if client.dispersy_port is None:
             client.dispersy_port = 21000 + client.scenario_runner._peernumber
         config.set_dispersy_port(client.dispersy_port)
         logging.error("Dispersy port set to %d" % client.dispersy_port)
+
+        # Allow a class that inherits from dispersymulticlient to modify the config
+        if client.modify_config:
+            config = client.modify_config(config)
+
         return config
 
     def stop(self, client, retry=3):
@@ -624,7 +655,8 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
 
         logging.error("Defer session stop to thread and stop reactor afterwards")
         client.annotate('end of experiment')
-        return threads.deferToThread(self.session.shutdown, False).addBoth(lambda _: reactor.callLater(10.0, reactor.stop))
+        self.session.shutdown().addBoth(lambda _: reactor.callLater(5.0, reactor.stop))
+       # return threads.deferToThread(self.session.shutdown, False).addBoth(lambda _: reactor.callLater(10.0, reactor.stop))
 
     def stop_dispersy(self, client):
         pass
@@ -633,7 +665,7 @@ def main(client_class):
     from gumby.instrumentation import init_instrumentation
     init_instrumentation()
     setupLogging()
-    if not environ.get('SELF_SERVICE') is None:
+    if environ.get('SELF_SERVICE') is not None:
         def expStartedReplacement(_):
             pass
         selfSync = ExperimentServiceFactory(1, 1.0)
