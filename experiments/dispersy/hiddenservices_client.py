@@ -159,9 +159,9 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         download.set_state_callback(cb)
 
         # Force lookup
-        sleep(10)
-        msg("Do a manual dht lookup call to bootstrap it a bit")
-        self.tunnel_community.do_dht_lookup(tdef.get_infohash())
+       # sleep(10)
+        #msg("Do a manual dht lookup call to bootstrap it a bit")
+        #self.tunnel_community.do_dht_lookup(tdef.get_infohash())
 
        # self.session.lm.threadpool.call_in_thread(0, cb_start_download)
 
