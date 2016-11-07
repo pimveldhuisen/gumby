@@ -31,8 +31,12 @@ class MultiChainClient(HiddenServicesClient):
         self.min_circuits = 1
         self.max_circuits = 1
 
+    def configure_multichain_community(self):
+        self.set_community_kwarg('tribler_session', self.session, name="multichain")
+
     def registerCallbacks(self):
         super(MultiChainClient, self).registerCallbacks()
+        self.scenario_runner.register(self.configure_multichain_community)
         self.scenario_runner.register(self.online)
         self.scenario_runner.register(self.introduce_candidates)
         self.scenario_runner.register(self.request_signature)

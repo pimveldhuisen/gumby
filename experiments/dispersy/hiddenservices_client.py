@@ -63,7 +63,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         self.min_circuits = 3
         self.max_circuits = 5
 
-    def init_community(self, become_exitnode=None, no_crypto=None):
+    def configure_tunnel_community(self, become_exitnode=None, no_crypto=None):
         become_exitnode = become_exitnode == 'exit'
         no_crypto = no_crypto == 'no_crypto'
 
@@ -252,8 +252,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         super(HiddenServicesClient, self).registerCallbacks()
         self.scenario_runner.register(self.setup_seeder, 'setup_seeder')
         self.scenario_runner.register(self.start_download, 'start_download')
-        self.scenario_runner.register(self.init_community, 'init_community')
-        self.scenario_runner.register(self.set_test_file_size, 'set_test_file_size')
+        self.scenario_runner.register(self.configure_tunnel_community, 'configure_tunnel_community')
         self.scenario_runner.register(self.set_security_limiters, 'set_security_limiters')
         self.scenario_runner.register(self.introduce_candidates, 'introduce_candidates')
 
