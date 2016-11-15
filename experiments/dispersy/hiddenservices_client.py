@@ -58,7 +58,6 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         self.speed_upload = {'upload': 0}
         self.progress = {'progress': 0}
         self.totalpeers = 20
-        self.test_file_size = 100 * 1024 * 1024
         self.security_limiters = False
         self.min_circuits = 3
         self.max_circuits = 5
@@ -73,7 +72,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         tunnel_settings.become_exitnode = become_exitnode
         msg("This peer is exit node: %s" % ('Yes' if become_exitnode else 'No'))
 
-        tunnel_settings.socks_listen_ports = [23000 + (10 * self.scenario_runner._peernumber) + i for i in range(5)]
+        tunnel_settings.socks_listen_ports = [27000 + (10 * self.scenario_runner._peernumber) + i for i in range(5)]
 
         if not self.security_limiters:
             tunnel_settings.max_traffic = 1024 * 1024 * 1024 * 1024
@@ -124,7 +123,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         msg("Fake creating introduction points, to prevent this download from messing other experiments")
         pass
 
-    def start_download(self, filename, hops=1):
+    def start_download(self, file_name, hops=1):
         hops = int(hops)
         self.annotate('start downloading %d hop(s)' % hops)
         from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
@@ -138,7 +137,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
 
        # def cb_start_download():
         from Tribler.Core.simpledefs import dlstatus_strings
-        tdef = self.create_test_torrent(filename)
+        tdef = self.create_tdef(file_name)
 
         def cb(ds):
             msg('Download infohash=%s, hops=%d, down=%s, up=%d, progress=%s, status=%s, peers=%s, cand=%d' %
@@ -156,6 +155,8 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
             return 1.0, False
 
         download = self.session.start_download_from_tdef(tdef, dscfg)
+        for port in range(20000, 20000 + self.totalpeers):
+            download.add_peer(("127.0.0.1", port))
         download.set_state_callback(cb)
 
         # Force lookup
@@ -183,74 +184,60 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
                 self.tunnel_community.add_discovered_candidate(Candidate((self._dispersy._wan_address[0], port),
                                                                    tunnel=False))
 
-    def create_test_torrent(self, filename=''):
-        msg("Create %s download" % filename)
-        filename = path.join(BASE_DIR, "tribler", str(self.scenario_file) + str(filename))
-        msg("Creating torrent..")
-        with open(filename, 'wb') as fp:
-            fp.write("0" * self.test_file_size)
-
-        msg("Create a torrent")
+    def create_tdef(self, file_name="", file_size=100 * 1024 * 1024):
         from Tribler.Core.TorrentDef import TorrentDef
         tdef = TorrentDef()
-        tdef.add_content(filename)
+        download_file = path.join(BASE_DIR, "output", str(self.scenario_file) + "-" + file_name + "-download_file")
+        if not path.exists(download_file):
+            with open(download_file, 'wb') as fp:
+                fp.write("0" * file_size)
+        tdef.add_content(download_file)
         tdef.set_tracker("http://fake.net/announce")
         tdef.finalize()
-        tdef_file = path.join(BASE_DIR, "output", "gen.torrent")
-        tdef.save(tdef_file)
+        tdef_file = path.join(BASE_DIR, "output", str(file_name) + ".torrent")
+        if not path.exists(tdef_file):
+            tdef.save(tdef_file)
         return tdef
-
-    def set_test_file_size(self, filesize):
-        """
-        Set the test file size in bytes.
-        :param filesize: (int) amount of bytes to the test file.
-        :return: None
-        """
-        self.test_file_size = int(filesize)
 
     def set_security_limiters(self, value):
         self.security_limiters = value == 'True'
 
-    def setup_seeder(self, filename, hops):
+    def start_seeder(self, file_name, hops=1):
         hops = int(hops)
+        tdef = self.create_tdef(file_name)
         self.annotate('start seeding %d hop(s)' % hops)
 
-        def cb_seeder_download():
-            tdef = self.create_test_torrent(filename)
+        msg("Start seeding")
 
-            msg("Start seeding")
+        from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+        dscfg = defaultDLConfig.copy()
+        dscfg.set_dest_dir(path.join(BASE_DIR, "output"))
+        dscfg.set_hops(hops)
 
-            from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            dscfg.set_dest_dir(path.join(BASE_DIR, "tribler"))
-            dscfg.set_hops(hops)
+        def cb(ds):
+            from Tribler.Core.simpledefs import dlstatus_strings
+            msg('Seed infohash=%s, hops=%d, down=%d, up=%d, progress=%s, status=%s, peers=%s, cand=%d' %
+                          (tdef.get_infohash().encode('hex')[:5],
+                           hops,
+                           ds.get_current_speed('down'),
+                           ds.get_current_speed('up'),
+                           ds.get_progress(),
+                           dlstatus_strings[ds.get_status()],
+                           sum(ds.get_num_seeds_peers()),
+                           sum(1 for _ in self.tunnel_community.dispersy_yield_verified_candidates())))
 
-            def cb(ds):
-                from Tribler.Core.simpledefs import dlstatus_strings
-                msg('Seed infohash=%s, hops=%d, down=%d, up=%d, progress=%s, status=%s, peers=%s, cand=%d' %
-                              (tdef.get_infohash().encode('hex')[:5],
-                               hops,
-                               ds.get_current_speed('down'),
-                               ds.get_current_speed('up'),
-                               ds.get_progress(),
-                               dlstatus_strings[ds.get_status()],
-                               sum(ds.get_num_seeds_peers()),
-                               sum(1 for _ in self.tunnel_community.dispersy_yield_verified_candidates())))
+            self.log_progress_stats(ds)
 
-                self.log_progress_stats(ds)
+            return 1.0, False
 
-                return 1.0, False
+        download = self.session.start_download_from_tdef(tdef, dscfg)
+        download.set_state_callback(cb)
 
-            download = self.session.start_download_from_tdef(tdef, dscfg)
-            download.set_state_callback(cb)
-
-        msg("Call to cb_seeder_download")
-        reactor.callInThread(cb_seeder_download)
 
     def registerCallbacks(self):
         super(HiddenServicesClient, self).registerCallbacks()
-        self.scenario_runner.register(self.setup_seeder, 'setup_seeder')
+        self.scenario_runner.register(self.start_seeder, 'start_seeder')
         self.scenario_runner.register(self.start_download, 'start_download')
         self.scenario_runner.register(self.configure_tunnel_community, 'configure_tunnel_community')
         self.scenario_runner.register(self.set_security_limiters, 'set_security_limiters')
