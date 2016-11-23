@@ -530,6 +530,7 @@ class DispersyExperimentProvider(object):
             from dispersy.dispersy import Dispersy
             from dispersy.endpoint import StandaloneEndpoint
 
+        print "Starting dispersy at port + " + client.dispersy_port
         self.dispersy = Dispersy(StandaloneEndpoint(client.dispersy_port, '0.0.0.0'), u'.', client._database_file, client._crypto)
         self.dispersy.statistics.enable_debug_statistics(True)
         client._dispersy = self.dispersy
@@ -579,9 +580,7 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
         def on_tribler_started(_):
             from twisted.python.threadable import isInIOThread
             assert isInIOThread()
-            print "Debug 1"
             logging.error("Tribler Session started")
-         #   self.annotate("Tribler Session started")
             client.session = self.session
             client._dispersy = self.session.lm.dispersy
             client.original_on_incoming_packets = client._dispersy.on_incoming_packets
@@ -594,28 +593,13 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
                 sleep(0.1)
             return self.session.start().addCallback(on_tribler_started)
 
-        def __setup_dispersy_member(session):
-          #  from twisted.python.threadable import isInIOThread
-         #   assert isInIOThread()
-            print "Debug 3"
-           # try:
-            client.original_on_incoming_packets = self.dispersy.on_incoming_packets
-            client.post_start_dispersy()
-            print "I will return:"
-            print self.dispersy
-            return self.dispersy
-         #  # except:
-           #     logging.error("Error fetching master members: %s" % traceback.format_exc())
-#                raise
-
-        def _handleFailure(f):
+        def _handle_failure(f):
             print "errback"
             print "we got an exception: %s" % (f.getTraceback(),)
             raise f
 
         d = _do_start()
-        d.addErrback(_handleFailure)
-        #d.addCallback(__setup_dispersy_member)
+        d.addErrback(_handle_failure)
         return d
 
     def setup_session_config(self, client):
@@ -636,11 +620,12 @@ class DispersyExperimentTriblerProvider(DispersyExperimentProvider):
         config.set_enable_channel_search(False)
         config.set_videoserver_enabled(False)
         config.set_listen_port(20000 + client.scenario_runner._peernumber)
+        config.set_anon_listen_port(39000 + client.scenario_runner._peernumber * 5)
         socks5_listen_ports = [39000 + client.scenario_runner._peernumber * 5 + x for x in range(5)]
         config.set_tunnel_community_socks5_listen_ports(socks5_listen_ports)
 
-        if client.dispersy_port is None:
-            client.dispersy_port = 21000 + client.scenario_runner._peernumber
+        #if client.dispersy_port is None:
+        client.dispersy_port = 21000 + client.scenario_runner._peernumber
         config.set_dispersy_port(client.dispersy_port)
         logging.error("Dispersy port set to %d" % client.dispersy_port)
 
