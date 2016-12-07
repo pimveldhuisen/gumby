@@ -9,5 +9,5 @@
 @0:30 introduce_candidates
 @0:40 reset_dispersy_statistics
 @0:50 start_seeder some_file {1}
-@0:55 start_download some_file {2}
-@0:240 stop
+@0:55 start_download some_file hops=2 {2}
+@0:1200 stop

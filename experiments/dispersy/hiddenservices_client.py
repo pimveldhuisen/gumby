@@ -128,6 +128,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         super(HiddenServicesClient, self).online(dont_empty)
         if not self.session is None:
             self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
+            self.session.lm.tunnel_community = self.tunnel_community
 
             def monitor_downloads(dslist):
                 self.tunnel_community.monitor_downloads(dslist)
@@ -163,9 +164,14 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
             tdef.save(tdef_file)
         return tdef
 
+    def get_tdef(self, bullshit):
+        tdef_file = path.join(BASE_DIR, "very_not_illegal.torrent")
+        from Tribler.Core.TorrentDef import TorrentDef
+        return TorrentDef().load(tdef_file)
+
     def start_seeder(self, file_name, hops=0):
         hops = int(hops)
-        tdef = self.create_tdef(file_name)
+        tdef = self.get_tdef(file_name)
         self.annotate('start seeding %d hop(s)' % hops)
 
         msg("Start seeding")
@@ -211,7 +217,7 @@ class HiddenServicesClient(MultiDispersyExperimentScriptClient):
         self.tunnel_community.create_introduction_point = self.fake_create_introduction_point
 
         from Tribler.Core.simpledefs import dlstatus_strings
-        tdef = self.create_tdef(file_name)
+        tdef = self.get_tdef(file_name)
 
         def cb(ds):
             msg('Download infohash=%s, hops=%d, down=%s, up=%d, progress=%s, status=%s, peers=%s, cand=%d' %
