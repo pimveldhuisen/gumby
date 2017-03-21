@@ -22,6 +22,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.multichain_community = None
         self.vars['public_key'] = base64.encodestring(self.my_member_key)
         self.request_signatures_lc = LoopingCall(self.request_random_signature)
+        self.log_data_lc = LoopingCall(self.log_data)
 
     def setup_session_config(self):
         config = super(MultiChainClient, self).setup_session_config()
@@ -35,6 +36,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.scenario_runner.register(self.request_crawl)
         self.scenario_runner.register(self.start_requesting_signatures)
         self.scenario_runner.register(self.stop_requesting_signatures)
+        self.scenario_runner.register(self.start_logging_data)
         self.scenario_runner.register(self.load_multichain_community)
 
     def request_signature(self, candidate_id, up, down):
@@ -71,6 +73,15 @@ class MultiChainClient(TriblerExperimentScriptClient):
         rand_down = randint(1, 1000)
         known_candidates = list(self.multichain_community.dispersy_yield_verified_candidates())
         self.request_signature_from_candidate(choice(known_candidates), rand_up * 1024 * 1024, rand_down * 1024 * 1024)
+
+    def start_logging_data(self):
+        self.log_data_lc.start(5)
+
+    def log_data(self):
+        with open("log_file_trust_edges", 'a') as f:
+            f.write(str(len(self.multichain_community.get_trusted_edges())) + "\n")
+        with open("log_file_blocks", 'a') as f:
+            f.write(str(len(self.multichain_community.persistence.get_all_hash_requester())) + "\n")
 
     def load_multichain_community(self):
         """
