@@ -115,7 +115,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
     def load_trace(self):
         number_of_nodes = len(self.get_peers())
         from Tribler.community.multichain.database import MultiChainDB
-        self.database = MultiChainDB(None, "../../../gumby/experiments/multichain")
+        self.database = MultiChainDB(None, os.environ['EXPERIMENT_DIR'])
         self.id_lookup_table = []
         for x in range(number_of_nodes):
             self.id_lookup_table.append(self.database.get_requester_identities()[x])
