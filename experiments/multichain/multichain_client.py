@@ -21,7 +21,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
         super(MultiChainClient, self).__init__(params)
         self.multichain_community = None
         self.vars['public_key'] = base64.encodestring(self.my_member_key)
-        self.request_signatures_lc = LoopingCall(self.request_random_signature)
+        self.request_random_signatures_lc = LoopingCall(self.request_random_signature)
         self.log_data_lc = LoopingCall(self.log_data)
 
     def setup_session_config(self):
@@ -34,8 +34,8 @@ class MultiChainClient(TriblerExperimentScriptClient):
         super(MultiChainClient, self).registerCallbacks()
         self.scenario_runner.register(self.request_signature)
         self.scenario_runner.register(self.request_crawl)
-        self.scenario_runner.register(self.start_requesting_signatures)
-        self.scenario_runner.register(self.stop_requesting_signatures)
+        self.scenario_runner.register(self.start_requesting_random_signatures)
+        self.scenario_runner.register(self.stop_requesting_random_signatures)
         self.scenario_runner.register(self.start_logging_data)
         self.scenario_runner.register(self.load_multichain_community)
 
@@ -59,11 +59,12 @@ class MultiChainClient(TriblerExperimentScriptClient):
         candidate = self.multichain_community.get_candidate((str(target['host']), target['port']))
         self.multichain_community.send_crawl_request(candidate, int(sequence_number))
 
-    def start_requesting_signatures(self):
-        self.request_signatures_lc.start(1)
+    def start_requesting_random_signatures(self):
+        self.request_random_signatures_lc.start(1)
 
-    def stop_requesting_signatures(self):
-        self.request_signatures_lc.stop()
+    def stop_requesting_random_signatures(self):
+        self.request_random_signatures_lc.stop()
+
 
     def request_random_signature(self):
         """
