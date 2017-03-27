@@ -44,6 +44,10 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.scenario_runner.register(self.start_trace_replay)
         self.scenario_runner.register(self.start_logging_data)
         self.scenario_runner.register(self.load_multichain_community)
+        self.scenario_runner.register(self.start_trust_walk)
+
+    def start_trust_walk(self):
+        self.multichain_community.start_trust_walk()
 
     def request_signature(self, candidate_id, up, down):
         target = self.all_vars[str(candidate_id)]
