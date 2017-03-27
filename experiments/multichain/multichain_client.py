@@ -87,6 +87,8 @@ class MultiChainClient(TriblerExperimentScriptClient):
             f.write(str(len(self.multichain_community.get_trusted_edges())) + "\n")
         with open("log_file_blocks", 'a') as f:
             f.write(str(len(self.multichain_community.persistence.get_all_hash_requester())) + "\n")
+        with open("log_file_load", 'a') as f:
+            f.write(str(self.multichain_community.crawl_requests_received) + "\n")
 
     def load_multichain_community(self):
         """
