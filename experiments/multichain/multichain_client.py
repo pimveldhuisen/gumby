@@ -23,6 +23,8 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.vars['public_key'] = base64.encodestring(self.my_member_key)
         self.request_random_signatures_lc = LoopingCall(self.request_random_signature)
         self.log_data_lc = LoopingCall(self.log_data)
+        self.multichain_keypair = permidmod.generate_keypair_multichain()
+        self.vars['multichain_public_key'] = base64.encodestring(self.multichain_keypair.pub().key_to_bin())
 
     def setup_session_config(self):
         config = super(MultiChainClient, self).setup_session_config()
@@ -40,13 +42,15 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.scenario_runner.register(self.load_multichain_community)
 
     def request_signature(self, candidate_id, up, down):
-        target = self.all_vars[candidate_id]
+        target = self.all_vars[str(candidate_id)]
         self._logger.info("%s: Requesting Signature for candidate: %s" % (self.my_id, candidate_id))
         candidate = Candidate((str(target['host']), 21000 + int(candidate_id)), False)
         if not candidate.get_member():
-            member = self.multichain_community.get_member(public_key=base64.decodestring(str(target['public_key'])))
+            member = self.multichain_community.get_member(public_key=base64.decodestring(target['multichain_public_key']))
             member.add_identity(self.multichain_community)
             candidate.associate(member)
+            if not candidate.get_member():
+                self._logger.error("Candidate has no member")
 
         self.request_signature_from_candidate(candidate, up, down)
 
@@ -88,8 +92,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
         """
         Load the multichain community
         """
-        keypair = self.session.multichain_keypair
-        my_member = self.session.get_dispersy_instance().get_member(private_key=keypair.key_to_bin())
+        my_member = self.session.get_dispersy_instance().get_member(private_key=self.multichain_keypair.key_to_bin())
         self.multichain_community = self.session.get_dispersy_instance().define_auto_load(
             MultiChainCommunity, my_member, load=True, kargs={'tribler_session': self.session})[0]
 
