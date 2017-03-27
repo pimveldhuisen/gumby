@@ -23,6 +23,8 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.vars['public_key'] = base64.encodestring(self.my_member_key)
         self.request_random_signatures_lc = LoopingCall(self.request_random_signature)
         self.log_data_lc = LoopingCall(self.log_data)
+        self.trace_replay_lc = LoopingCall(self.replay_trace)
+        import Tribler.Core.permid as permidmod
         self.multichain_keypair = permidmod.generate_keypair_multichain()
         self.vars['multichain_public_key'] = base64.encodestring(self.multichain_keypair.pub().key_to_bin())
 
@@ -38,6 +40,8 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.scenario_runner.register(self.request_crawl)
         self.scenario_runner.register(self.start_requesting_random_signatures)
         self.scenario_runner.register(self.stop_requesting_random_signatures)
+        self.scenario_runner.register(self.load_trace)
+        self.scenario_runner.register(self.start_trace_replay)
         self.scenario_runner.register(self.start_logging_data)
         self.scenario_runner.register(self.load_multichain_community)
 
@@ -69,6 +73,20 @@ class MultiChainClient(TriblerExperimentScriptClient):
     def stop_requesting_random_signatures(self):
         self.request_random_signatures_lc.stop()
 
+    def start_trace_replay(self):
+        self.trace_replay_lc.start(1)
+
+    def replay_trace(self):
+        if self.request_queue:
+            request = self.request_queue.pop()
+            try:
+                candidate_id = self._find_id(request.public_key_responder)
+            except LookupError:
+                self._logger.error("Counterparty for block not found within experiment")
+                return
+            self.request_signature(candidate_id, request.up, request.down)
+        else:
+            self.trace_replay_lc.stop()
 
     def request_random_signature(self):
         """
@@ -89,6 +107,23 @@ class MultiChainClient(TriblerExperimentScriptClient):
             f.write(str(len(self.multichain_community.persistence.get_all_hash_requester())) + "\n")
         with open("log_file_load", 'a') as f:
             f.write(str(self.multichain_community.crawl_requests_received) + "\n")
+
+    def load_trace(self):
+        number_of_nodes = len(self.get_peers())
+        from Tribler.community.multichain.database import MultiChainDB
+        self.database = MultiChainDB(None, "../../../gumby/experiments/multichain")
+        self.id_lookup_table = []
+        for x in range(number_of_nodes):
+            self.id_lookup_table.append(self.database.get_requester_identities()[x])
+        self.request_queue = self.database.get_requester_blocks(self.id_lookup_table[int(self.my_id)-1])
+
+        self._logger.error("ID " + self.my_id + " has " + str(len(self.request_queue)) + " requests to make")
+
+    def _find_id(self, public_key):
+        for x in range(len(self.id_lookup_table)):
+            if str(self.id_lookup_table[x]) == public_key:
+                return x+1
+        raise LookupError
 
     def load_multichain_community(self):
         """

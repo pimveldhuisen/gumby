@@ -1,0 +1,7 @@
+@0:2 start_session
+@0:10 load_multichain_community
+@0:20 start_logging_data
+@0:20 load_trace
+@0:30 start_trace_replay
+@0:620 stop_session
+@0:640 stop
