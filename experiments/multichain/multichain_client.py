@@ -63,7 +63,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.request_signature_from_candidate(candidate, up, down)
 
     def request_signature_from_candidate(self, candidate, up, down):
-        self.multichain_community.schedule_block(candidate, int(up), int(down))
+        self.multichain_community.schedule_block(candidate, int(up)*1024*1024, int(down)*1024*1024)
 
     def request_crawl(self, candidate_id, sequence_number):
         target = self.all_vars[candidate_id]
