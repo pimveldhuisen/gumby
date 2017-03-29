@@ -30,7 +30,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
 
     def setup_session_config(self):
         config = super(MultiChainClient, self).setup_session_config()
-        config.set_tunnel_community_enabled(True)
+        config.set_tunnel_community_enabled(False)
         config.set_enable_multichain(False)  # We're loading our own multichain community
         return config
 
