@@ -42,6 +42,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.scenario_runner.register(self.stop_requesting_random_signatures)
         self.scenario_runner.register(self.load_trace)
         self.scenario_runner.register(self.start_trace_replay)
+        self.scenario_runner.register(self.stop_trace_replay)
         self.scenario_runner.register(self.start_logging_data)
         self.scenario_runner.register(self.load_multichain_community)
         self.scenario_runner.register(self.start_trust_walk)
@@ -79,6 +80,9 @@ class MultiChainClient(TriblerExperimentScriptClient):
 
     def start_trace_replay(self):
         self.trace_replay_lc.start(1)
+
+    def stop_trace_replay(self):
+        self.trace_replay_lc.stop()
 
     def replay_trace(self):
         if self.request_queue:
