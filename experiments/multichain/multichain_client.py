@@ -44,6 +44,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.scenario_runner.register(self.start_trace_replay)
         self.scenario_runner.register(self.stop_trace_replay)
         self.scenario_runner.register(self.start_logging_data)
+        self.scenario_runner.register(self.stop_logging_data)
         self.scenario_runner.register(self.load_multichain_community)
         self.scenario_runner.register(self.start_trust_walk)
 
@@ -107,6 +108,9 @@ class MultiChainClient(TriblerExperimentScriptClient):
 
     def start_logging_data(self):
         self.log_data_lc.start(5)
+
+    def stop_logging_data(self):
+        self.log_data_lc.stop()
 
     def log_data(self):
         with open("log_file_trust_edges", 'a') as f:
