@@ -27,6 +27,8 @@ class MultiChainClient(TriblerExperimentScriptClient):
         import Tribler.Core.permid as permidmod
         self.multichain_keypair = permidmod.generate_keypair_multichain()
         self.vars['multichain_public_key'] = base64.encodestring(self.multichain_keypair.pub().key_to_bin())
+        self.log_trust_edges = []
+        self.log_blocks = []
 
     def setup_session_config(self):
         config = super(MultiChainClient, self).setup_session_config()
@@ -111,14 +113,21 @@ class MultiChainClient(TriblerExperimentScriptClient):
 
     def stop_logging_data(self):
         self.log_data_lc.stop()
+        self.write_log_to_file()
 
     def log_data(self):
+        self.log_trust_edges.append(str(len(self.multichain_community.get_trusted_edges())) + "\n")
+        self.log_blocks.append(str(len(self.multichain_community.persistence.get_all_hash_requester())) + "\n")
+
+    def write_log_to_file(self):
         with open("log_file_trust_edges", 'a') as f:
-            f.write(str(len(self.multichain_community.get_trusted_edges())) + "\n")
+            for datum in self.log_trust_edges:
+                f.write(datum)
         with open("log_file_blocks", 'a') as f:
-            f.write(str(len(self.multichain_community.persistence.get_all_hash_requester())) + "\n")
+            for datum in self.log_blocks:
+                f.write(datum)
         with open("log_file_load", 'a') as f:
-            f.write(str(self.multichain_community.crawl_requests_received) + "\n")
+            f.write(str(self.multichain_community.discovery_requests_received) + "\n")
 
     def load_trace(self):
         number_of_nodes = len(self.get_peers())
