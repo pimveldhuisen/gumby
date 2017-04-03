@@ -86,6 +86,8 @@ class MultiChainClient(TriblerExperimentScriptClient):
 
     def stop_trace_replay(self):
         self.trace_replay_lc.stop()
+        for call in reactor.getDelayedCalls():
+            self._logger.error(str(call))
 
     def replay_trace(self):
         if self.request_queue:
