@@ -23,7 +23,6 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.multichain_community = None
         self.vars['public_key'] = base64.encodestring(self.my_member_key)
         self.request_random_signatures_lc = LoopingCall(self.request_random_signature)
-        self.log_data_lc = LoopingCall(self.log_data)
         self.trace_replay_lc = LoopingCall(self.replay_trace)
         import Tribler.Core.permid as permidmod
         self.multichain_keypair = permidmod.generate_keypair_multichain()
@@ -46,8 +45,7 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.scenario_runner.register(self.load_trace)
         self.scenario_runner.register(self.start_trace_replay)
         self.scenario_runner.register(self.stop_trace_replay)
-        self.scenario_runner.register(self.start_logging_data)
-        self.scenario_runner.register(self.stop_logging_data)
+        self.scenario_runner.register(self.schedule_logging_data)
         self.scenario_runner.register(self.load_multichain_community)
         self.scenario_runner.register(self.start_trust_walk)
 
@@ -111,12 +109,17 @@ class MultiChainClient(TriblerExperimentScriptClient):
         known_candidates = list(self.multichain_community.dispersy_yield_verified_candidates())
         self.request_signature_from_candidate(choice(known_candidates), rand_up * 1024 * 1024, rand_down * 1024 * 1024)
 
-    def start_logging_data(self):
-        self.log_data_lc.start(5)
-
-    def stop_logging_data(self):
-        self.log_data_lc.stop()
-        self.write_log_to_file()
+    def schedule_logging_data(self, stop, interval):
+        """
+        Schedules the logging function every <@param interval> seconds until <@param stop> seconds in the future"
+        """
+        stop = int(stop)
+        interval = int(interval)
+        timepoints = range(interval, stop+interval, interval)
+        for time in timepoints:
+            reactor.callLater(time, self.log_data)
+            self._logger.error("Schedule data logging at %d seconds in the future", time)
+        reactor.callLater(timepoints[-1]+1, self.write_log_to_file)
 
     def log_data(self):
         self.log_trust_edges.append((str(time()) + " ", str(len(self.multichain_community.get_trusted_edges())) + "\n"))
