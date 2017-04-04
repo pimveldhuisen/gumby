@@ -2,6 +2,7 @@
 import base64
 import os
 from random import randint, choice
+from time import time
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -118,16 +119,18 @@ class MultiChainClient(TriblerExperimentScriptClient):
         self.write_log_to_file()
 
     def log_data(self):
-        self.log_trust_edges.append(str(len(self.multichain_community.get_trusted_edges())) + "\n")
-        self.log_blocks.append(str(len(self.multichain_community.persistence.get_all_hash_requester())) + "\n")
+        self.log_trust_edges.append((str(time()) + " ", str(len(self.multichain_community.get_trusted_edges())) + "\n"))
+        self.log_blocks.append((str(time()) + " ", str(len(self.multichain_community.persistence.get_all_hash_requester())) + "\n"))
 
     def write_log_to_file(self):
         with open("log_file_trust_edges", 'a') as f:
             for datum in self.log_trust_edges:
-                f.write(datum)
+                for item in datum:
+                    f.write(item)
         with open("log_file_blocks", 'a') as f:
             for datum in self.log_blocks:
-                f.write(datum)
+                for item in datum:
+                    f.write(item)
         with open("log_file_load", 'a') as f:
             f.write(str(self.multichain_community.discovery_requests_received) + "\n")
 
